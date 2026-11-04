@@ -2,10 +2,12 @@ const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const Joi     = require('joi');
+const { OAuth2Client } = require('google-auth-library');
 const { pool }         = require('../db/pool');
 const { authenticate } = require('../middleware/auth.middleware');
 const { createError }  = require('../middleware/error.middleware');
 const { BLOOD_GROUPS } = require('../middleware/validate.middleware');
+const googleClient = new OAuth2Client();
 
 // ── Joi schemas ───────────────────────────────────────────────
 const registerSchema = Joi.object({
@@ -28,9 +30,12 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  email:    Joi.string().email().lowercase().required(),
+  email:    Joi.string().email().lowercase(),
+  phone:    Joi.string().trim().pattern(/^\+?[\d\s().-]{7,20}$/),
   password: Joi.string().required(),
-});
+}).xor('email', 'phone');
+
+const googleSchema = Joi.object({ credential: Joi.string().required() });
 
 function signToken(user) {
   return jwt.sign(
@@ -104,20 +109,71 @@ router.post('/login', async (req, res, next) => {
   }
 
   try {
-    const result = await pool.query(
-      `SELECT user_id, name, email, password_hash, role, phone, is_active
-       FROM users WHERE email = $1`,
-      [value.email],
-    );
+    const result = value.phone
+      ? await pool.query(
+          `SELECT user_id, name, email, password_hash, role, phone, is_active
+           FROM users
+           WHERE regexp_replace(phone, '[^0-9]', '', 'g') = $1
+           ORDER BY user_id
+           LIMIT 2`,
+          [value.phone.replace(/\D/g, '')],
+        )
+      : await pool.query(
+          `SELECT user_id, name, email, password_hash, role, phone, is_active
+           FROM users WHERE email = $1`,
+          [value.email],
+        );
 
     const user = result.rows[0];
-    if (!user) throw createError(401, 'Invalid email or password.');
+    if (!user || result.rows.length > 1) throw createError(401, 'Invalid email or password.');
     if (!user.is_active) throw createError(401, 'Account is deactivated. Contact admin.');
 
     const match = await bcrypt.compare(value.password, user.password_hash);
     if (!match) throw createError(401, 'Invalid email or password.');
 
     delete user.password_hash;
+    const token = signToken(user);
+    res.json({ success: true, token, user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/auth/google ────────────────────────────────────
+// Google Identity Services returns a signed ID token. Verify it here before
+// creating a Hemora session; never trust profile details sent by the browser.
+router.post('/google', async (req, res, next) => {
+  const { error, value } = googleSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({ success: false, message: 'A Google credential is required.' });
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(503).json({ success: false, message: 'Google sign-in is not configured for this app yet.' });
+  }
+
+  let claims;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken: value.credential, audience: clientId });
+    claims = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ success: false, message: 'Google could not verify this sign-in. Please try again.' });
+  }
+  if (!claims?.email || claims.email_verified !== true) {
+    return res.status(401).json({ success: false, message: 'Google could not verify this email address.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT user_id, name, email, role, phone, is_active
+       FROM users WHERE email = $1`,
+      [claims.email.toLowerCase()],
+    );
+    const user = rows[0];
+    if (!user) throw createError(401, 'No Hemora account uses this Google email yet. Create an account first.');
+    if (!user.is_active) throw createError(401, 'Account is deactivated. Contact admin.');
+
     const token = signToken(user);
     res.json({ success: true, token, user });
   } catch (err) {

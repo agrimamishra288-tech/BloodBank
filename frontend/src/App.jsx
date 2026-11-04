@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navbar      from './components/Navbar'
 import Login       from './pages/Login'
@@ -13,6 +14,7 @@ import Donations   from './pages/Donations'
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -36,13 +38,14 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   )
 }
 
 import { Outlet } from 'react-router-dom'
 function Layout() {
   return (
-    <div className="min-h-screen bg-[#f8f6f3]">
+    <div className="app-shell min-h-screen bg-[#f8f6f3]">
       <Navbar />
       <main className="mx-auto max-w-[1440px] px-4 py-8 sm:px-7 sm:py-9">
         <Outlet />

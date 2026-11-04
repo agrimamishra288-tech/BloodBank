@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ErrorBanner from '../components/ErrorBanner'
 import AuthShowcase from '../components/AuthShowcase'
+import ThemeToggle from '../components/ThemeToggle'
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
 
@@ -39,7 +40,7 @@ export default function Register() {
       <AuthShowcase mode="register" />
       <main className="auth-main auth-main-register">
       <section className="auth-card auth-card-register">
-        <div className="auth-card-topline"><span className="auth-mini-mark">✚</span><span className="auth-card-note">MAKE ROOM FOR MORE GOOD</span></div>
+        <div className="auth-card-topline"><span className="auth-mini-mark">✚</span><span className="auth-card-note">MAKE ROOM FOR MORE GOOD</span><ThemeToggle compact /></div>
         <div className="mb-5 mt-5">
           <p className="eyebrow">Join the network</p>
           <h1 className="mt-1 text-2xl font-extrabold text-[#30212a] sm:text-3xl">Give good a place to start.</h1>

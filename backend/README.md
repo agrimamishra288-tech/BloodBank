@@ -373,3 +373,22 @@ Import this collection order for end-to-end testing:
 - **Atomic operations**: Fulfillment and donation registration use stored procedures wrapped in transactions
 - **Audit trail**: All inventory and request changes are automatically logged to `audit_log` via triggers
 - **90-day donor eligibility**: Enforced at the database function level, not just application level
+
+---
+
+## Sign-in options
+
+- Email and password use the existing JWT login flow.
+- Mobile number and password use the phone number stored on the user account. Phone numbers should include their country code where applicable.
+- Google sign-in verifies the Google Identity Services ID token on the server and only signs into an existing Hemora account with the same verified email. It does not create donor or hospital profiles automatically.
+
+### Configure Google sign-in
+
+Google sign-in stays unavailable until a Google OAuth **Web application** client ID is configured.
+
+1. Create a Web application OAuth client in Google Cloud and add your local frontend origin (for example, `http://localhost:5173` and `http://localhost:5174`) to **Authorized JavaScript origins**.
+2. Copy `frontend/.env.example` to `frontend/.env` and set `VITE_GOOGLE_CLIENT_ID` to that client ID.
+3. Set the same `GOOGLE_CLIENT_ID` in `backend/.env`.
+4. Restart both development servers so the environment variables are loaded.
+
+The client ID is public configuration. Keep `JWT_SECRET`, database credentials, and any future OAuth client secrets in the backend environment only; never put them in the frontend `.env` file.

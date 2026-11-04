@@ -1,5 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import ThemeToggle from './ThemeToggle'
 
 const navLinks = [
   { to: '/', label: 'Overview', icon: '◫' },
@@ -16,7 +17,7 @@ export default function Navbar() {
   function handleLogout() { logout(); navigate('/login') }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#eee8e3] bg-[#fffdfa]/95 backdrop-blur-xl">
+    <header className="site-header sticky top-0 z-40 border-b border-[#eee8e3] bg-[#fffdfa]/95 backdrop-blur-xl">
       <div className="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-7">
         <Link to="/" className="flex shrink-0 items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#9d2935] text-lg text-white shadow-[0_5px_12px_rgba(157,41,53,.2)]">✚</span>
@@ -26,6 +27,7 @@ export default function Navbar() {
           {navLinks.map(({ to, label, icon }) => <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all ${isActive ? 'bg-white text-[#902733] shadow-sm' : 'text-[#817772] hover:bg-white/70 hover:text-[#403835]'}`}><span className="text-[15px]">{icon}</span>{label}</NavLink>)}
         </nav>
         <div className="flex shrink-0 items-center gap-3">
+          <ThemeToggle />
           <div className="hidden items-center gap-2.5 sm:flex">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-[#f1e7e1] text-xs font-bold uppercase text-[#8c4246]">{user?.name?.slice(0, 1) || 'U'}</span>
             <span className="leading-tight"><span className="block text-xs font-bold capitalize text-[#39312e]">{user?.name}</span><span className="mt-1 block text-[10px] font-medium capitalize text-[#a39a94]">{user?.role}</span></span>
