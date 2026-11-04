@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ErrorBanner from '../components/ErrorBanner'
+import AuthShowcase from '../components/AuthShowcase'
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
 
@@ -34,14 +35,15 @@ export default function Register() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f3ef] p-4 py-10">
-      <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#76242d]"/><div className="absolute -bottom-24 -right-16 h-80 w-80 rounded-full bg-[#e9d7d0]"/>
-      <div className="relative w-full max-w-lg rounded-3xl border border-[#eee7e0] bg-white p-7 shadow-[0_16px_55px_rgba(54,40,34,.09)] sm:p-9">
-        <div className="text-center mb-6">
-          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#f8e9e8] text-lg text-[#9d2935]">✚</div>
+    <div className="auth-page auth-page-register">
+      <AuthShowcase mode="register" />
+      <main className="auth-main auth-main-register">
+      <section className="auth-card auth-card-register">
+        <div className="auth-card-topline"><span className="auth-mini-mark">✚</span><span className="auth-card-note">MAKE ROOM FOR MORE GOOD</span></div>
+        <div className="mb-5 mt-5">
           <p className="eyebrow">Join the network</p>
-          <h1 className="mt-1 text-2xl font-extrabold text-[#302927]">Create your account</h1>
-          <p className="text-gray-500 text-sm mt-1">Register as a donor or hospital staff</p>
+          <h1 className="mt-1 text-2xl font-extrabold text-[#30212a] sm:text-3xl">Give good a place to start.</h1>
+          <p className="mt-1 text-sm text-[#8d7d7d]">Create an account as a donor or hospital staff.</p>
         </div>
 
         <ErrorBanner error={error} onDismiss={() => setError(null)} />
@@ -58,7 +60,7 @@ export default function Register() {
 
             <div>
               <label className="label">Full Name *</label>
-              <input required className="input" placeholder="Rohan Mehta"
+              <input required minLength={2} maxLength={100} className="input" placeholder="Rohan Mehta"
                 value={form.name} onChange={(e) => set('name', e.target.value)} />
             </div>
             <div>
@@ -73,7 +75,7 @@ export default function Register() {
             </div>
             <div>
               <label className="label">Password *</label>
-              <input required type="password" className="input" placeholder="Min 6 chars"
+              <input required minLength={6} type="password" className="input" placeholder="At least 6 characters"
                 value={form.password} onChange={(e) => set('password', e.target.value)} />
             </div>
           </div>
@@ -124,11 +126,13 @@ export default function Register() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="mt-4 text-center text-sm text-[#8d7d7d]">
           Already have an account?{' '}
-          <Link to="/login" className="text-red-600 font-medium hover:underline">Sign in</Link>
+          <Link to="/login" className="font-bold text-[#a33243] hover:underline">Sign in ↗</Link>
         </p>
-      </div>
+      </section>
+      <p className="auth-footnote">Your details help connect care to the people who need it.</p>
+      </main>
     </div>
   )
 }
