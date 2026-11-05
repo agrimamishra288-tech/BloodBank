@@ -302,6 +302,75 @@ html[data-theme="dark"] .app-shell .readiness-caption,
 html[data-theme="dark"] .app-shell .readiness-bottom { color: #c0a5aa; }
 html[data-theme="dark"] .app-shell .readiness-ring-track { stroke: rgba(255,255,255,.14); }
 html[data-theme="dark"] .app-shell .readiness-ring strong { color: #ffd0c6; }
+
+.donor-directory { display: flex; flex-direction: column; gap: 22px; color: #332b2c; }
+.donor-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.donor-page-header .page-title { margin-bottom: 0; }
+.donor-page-intro { margin-top: 7px; color: #897d7a; font-size: 13px; }
+.donor-filter-panel { border: 1px solid #eee6e1; border-radius: 20px; background: #fff; padding: 20px 22px 22px; box-shadow: 0 4px 18px rgba(53,38,34,.025); }
+.donor-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.donor-filter-heading h2,.donor-results-heading h2 { color: #352d2e; font-family: 'Manrope',sans-serif; font-size: 16px; font-weight: 800; letter-spacing: -.025em; }
+.donor-filter-heading p,.donor-results-heading p { margin-top: 3px; color: #9a8d89; font-size: 11px; }
+.donor-filter-mark { border: 1px solid #f0e5e0; border-radius: 999px; padding: 5px 9px; color: #9b686b; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.donor-filter-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: end; gap: 14px; }
+.donor-clear-button { min-height: 42px; white-space: nowrap; }
+.donor-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.donor-result-count { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid #efded8; border-radius: 999px; background: #fff9f6; padding: 7px 12px; color: #9a303e; font-size: 13px; font-weight: 800; }
+.donor-result-count span { color: #8d7b77; font-size: 10px; font-weight: 600; }
+.donor-card-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.donor-card { position: relative; overflow: hidden; border: 1px solid #eee7e2; border-radius: 19px; background: #fff; padding: 20px; box-shadow: 0 3px 14px rgba(47,37,32,.025); transition: transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.donor-card:hover { transform: translateY(-2px); border-color: #e3c8c3; box-shadow: 0 10px 28px rgba(70,38,43,.07); }
+.donor-card-topline { position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg,#a42e40,#d58a72 72%,#eed5c5); }
+.donor-card-header,.donor-identity { display: flex; align-items: center; }
+.donor-card-header { justify-content: space-between; gap: 12px; }
+.donor-identity { min-width: 0; gap: 12px; }
+.donor-avatar { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border: 1px solid #f0dcd6; border-radius: 14px; background: #fbf1ed; color: #9c3641; font-family: 'Manrope',sans-serif; font-size: 16px; font-weight: 800; }
+.donor-identity h3 { overflow: hidden; color: #332b2c; font-family: 'Manrope',sans-serif; font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.donor-identity p { overflow: hidden; margin-top: 3px; color: #90827f; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.donor-profile-meta { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 19px; border-top: 1px solid #f1ebe7; border-bottom: 1px solid #f1ebe7; padding: 13px 0; }
+.donor-profile-meta div { display: flex; flex-direction: column; gap: 4px; }
+.donor-profile-meta div+div { border-left: 1px solid #f1ebe7; padding-left: 12px; }
+.donor-profile-meta span,.donor-last-donation span { color: #9c8f8b; font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.donor-profile-meta strong,.donor-last-donation strong { color: #514749; font-size: 12px; font-weight: 700; }
+.donor-card-footer { display: flex; min-height: 37px; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.donor-last-donation { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.donor-last-donation strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.donor-deactivate-button { color: #a23b43; font-size: 10px; font-weight: 700; }
+.donor-deactivate-button:hover { color: #76232c; text-decoration: underline; }
+.donor-empty-state { display: flex; min-height: 210px; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed #e6d9d4; border-radius: 20px; background: rgba(255,255,255,.62); text-align: center; }
+.donor-empty-state p { margin-top: 10px; color: #524649; font-size: 14px; font-weight: 800; }
+.donor-empty-state>span:last-child { margin-top: 4px; color: #948783; font-size: 11px; }
+.donor-empty-mark { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #eadbd5; border-radius: 12px; color: #9c444d; font-weight: 800; }
+.donor-loading-line { width: 38px; height: 3px; overflow: hidden; border-radius: 9px; background: linear-gradient(90deg,#9d2935 40%,#efded8 40%); animation: donor-loading 1s ease-in-out infinite alternate; }
+@keyframes donor-loading { to { transform: scaleX(1.45); opacity: .65; } }
+html[data-theme="dark"] .donor-directory { color: #eee7ea; }
+html[data-theme="dark"] .donor-page-intro,html[data-theme="dark"] .donor-filter-heading p,html[data-theme="dark"] .donor-results-heading p { color: #b2a4ac; }
+html[data-theme="dark"] .donor-filter-panel,html[data-theme="dark"] .donor-card { border-color: #39333b; background: #221f25; box-shadow: 0 5px 20px rgba(0,0,0,.12); }
+html[data-theme="dark"] .donor-filter-heading h2,html[data-theme="dark"] .donor-results-heading h2,html[data-theme="dark"] .donor-identity h3 { color: #f3ebee; }
+html[data-theme="dark"] .donor-filter-mark { border-color: #4a3a43; color: #ddaeb0; }
+html[data-theme="dark"] .donor-result-count { border-color: #574047; background: #34272e; color: #ffc4c8; }
+html[data-theme="dark"] .donor-result-count span,html[data-theme="dark"] .donor-identity p,html[data-theme="dark"] .donor-profile-meta span,html[data-theme="dark"] .donor-last-donation span { color: #b5a6ad; }
+html[data-theme="dark"] .donor-avatar { border-color: #594048; background: #382a31; color: #f1bdba; }
+html[data-theme="dark"] .donor-profile-meta { border-color: #39333b; }
+html[data-theme="dark"] .donor-profile-meta div+div { border-color: #39333b; }
+html[data-theme="dark"] .donor-profile-meta strong,html[data-theme="dark"] .donor-last-donation strong { color: #e8dfe3; }
+html[data-theme="dark"] .donor-empty-state { border-color: #484047; background: rgba(34,31,37,.72); }
+html[data-theme="dark"] .donor-empty-state p { color: #e8dfe3; }
+html[data-theme="dark"] .donor-empty-state>span:last-child { color: #b5a6ad; }
+html[data-theme="dark"] .donor-empty-mark { border-color: #594048; color: #efb8ba; }
+html[data-theme="dark"] .donor-deactivate-button { color: #f3a6ac; }
+
+@media (max-width: 900px) {
+  .donor-card-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .donor-filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 560px) {
+  .donor-page-header { align-items: flex-start; flex-direction: column; }
+  .donor-filter-panel { padding: 17px; }
+  .donor-filter-grid,.donor-card-grid { grid-template-columns: 1fr; }
+  .donor-clear-button { width: 100%; }
+  .donor-card { padding: 18px; }
+}
 html[data-theme="dark"] .auth-page { background: radial-gradient(ellipse at 84% 8%, #3b2b30 0, transparent 30%), #19161b; }
 html[data-theme="dark"] .auth-card { border-color: #3a3039; background: #252128; box-shadow: 0 20px 70px rgba(0,0,0,.3); }
 html[data-theme="dark"] .auth-card h1 { color: #f4e9ee !important; }

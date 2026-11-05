@@ -133,88 +133,100 @@ export default function Donors() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="donor-directory">
       {showForm && <DonorModal onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); fetchDonors() }} />}
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Donors</h1>
+      <header className="donor-page-header">
+        <div>
+          <p className="eyebrow">PEOPLE · DONOR DIRECTORY</p>
+          <h1 className="page-title mt-2">Donor network</h1>
+          <p className="donor-page-intro">Find eligible donors by blood group and location.</p>
+        </div>
         {(user?.role === 'admin' || user?.role === 'hospital') && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>+ Register Donor</button>
+          <button className="btn-primary" onClick={() => setShowForm(true)}><span aria-hidden="true">+</span> Register donor</button>
         )}
-      </div>
+      </header>
 
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
-      {/* Filters */}
-      <div className="card flex flex-wrap gap-4 !p-4">
-        <div className="flex-1 min-w-36">
-          <label className="label">Blood Group</label>
-          <select className="select" value={filters.blood_group}
-            onChange={(e) => setFilters((f) => ({ ...f, blood_group: e.target.value }))}>
-            <option value="">All groups</option>
-            {BLOOD_GROUPS.map((g) => <option key={g}>{g}</option>)}
-          </select>
+      <section className="donor-filter-panel" aria-label="Filter donors">
+        <div className="donor-filter-heading">
+          <div><h2>Find a donor</h2><p>Refine the directory using the options below.</p></div>
+          <span className="donor-filter-mark" aria-hidden="true">FILTERS</span>
         </div>
-        <div className="flex-1 min-w-36">
-          <label className="label">City</label>
-          <input className="input" placeholder="Delhi…"
-            value={filters.city}
-            onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))} />
-        </div>
-        <div className="flex-1 min-w-36">
-          <label className="label">Eligibility</label>
-          <select className="select" value={filters.eligible}
-            onChange={(e) => setFilters((f) => ({ ...f, eligible: e.target.value }))}>
-            <option value="">All</option>
-            <option value="true">Eligible only</option>
-            <option value="false">Not eligible</option>
-          </select>
-        </div>
-        <div className="flex items-end">
-          <button className="btn-secondary" onClick={() => setFilters({ blood_group: '', city: '', eligible: '' })}>
-            Clear
+        <div className="donor-filter-grid">
+          <div>
+            <label className="label" htmlFor="donor-blood-group">Blood group</label>
+            <select id="donor-blood-group" className="select" value={filters.blood_group}
+              onChange={(e) => setFilters((f) => ({ ...f, blood_group: e.target.value }))}>
+              <option value="">All blood groups</option>
+              {BLOOD_GROUPS.map((g) => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="donor-city">City</label>
+            <input id="donor-city" className="input" placeholder="Search by city"
+              value={filters.city}
+              onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))} />
+          </div>
+          <div>
+            <label className="label" htmlFor="donor-eligibility">Eligibility</label>
+            <select id="donor-eligibility" className="select" value={filters.eligible}
+              onChange={(e) => setFilters((f) => ({ ...f, eligible: e.target.value }))}>
+              <option value="">Any status</option>
+              <option value="true">Eligible now</option>
+              <option value="false">Not yet eligible</option>
+            </select>
+          </div>
+          <button className="btn-secondary donor-clear-button" onClick={() => setFilters({ blood_group: '', city: '', eligible: '' })}>
+            Clear filters
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Results count */}
-      <p className="text-sm text-gray-500">{donors.length} donor{donors.length !== 1 ? 's' : ''} found</p>
+      <div className="donor-results-heading" aria-live="polite">
+        <div><h2>Available donors</h2><p>Directory results based on your selected filters.</p></div>
+        <span className="donor-result-count">{donors.length} <span>{donors.length === 1 ? 'donor' : 'donors'}</span></span>
+      </div>
 
       {/* Donor grid */}
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Loading…</div>
+        <div className="donor-empty-state" role="status"><span className="donor-loading-line" /><p>Loading donor directory</p><span>Retrieving the latest matching profiles.</span></div>
       ) : donors.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">No donors found with these filters.</div>
+        <div className="donor-empty-state"><span className="donor-empty-mark">—</span><p>No matching donors</p><span>Try changing the blood group, city, or eligibility filters.</span></div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="donor-card-grid">
           {donors.map((d) => (
-            <div key={d.donor_id} className="card hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{d.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{d.email}</p>
+            <article key={d.donor_id} className="donor-card">
+              <div className="donor-card-topline" />
+              <div className="donor-card-header">
+                <div className="donor-identity">
+                  <span className="donor-avatar" aria-hidden="true">{d.name?.trim()?.charAt(0)?.toUpperCase() || 'D'}</span>
+                  <div className="min-w-0">
+                    <h3>{d.name}</h3>
+                    <p>{d.city}, {d.state}</p>
+                  </div>
                 </div>
                 <BloodGroupBadge group={d.blood_group} size="lg" />
               </div>
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
-                <p>📍 {d.city}, {d.state}</p>
-                <p>📞 {d.phone || '—'}</p>
-                <p>🎂 Age {d.age} · {d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Other'}</p>
-                <p>💉 {d.total_donations} donation{d.total_donations !== 1 ? 's' : ''}</p>
-                {d.last_donation_date && (
-                  <p className="text-xs text-gray-400">Last: {new Date(d.last_donation_date).toLocaleDateString('en-IN')}</p>
-                )}
+              <div className="donor-profile-meta">
+                <div><span>Age</span><strong>{d.age}</strong></div>
+                <div><span>Gender</span><strong>{d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Other'}</strong></div>
+                <div><span>Donations</span><strong>{d.total_donations}</strong></div>
               </div>
-              <div className="mt-3 flex items-center justify-between">
+              <div className="donor-card-footer">
+                <div className="donor-last-donation">
+                  <span>Last donation</span>
+                  <strong>{d.last_donation_date ? new Date(d.last_donation_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No previous donation'}</strong>
+                </div>
                 <EligibleBadge eligible={d.eligible} />
                 {user?.role === 'admin' && (
-                  <button onClick={() => handleDelete(d.donor_id)} className="text-xs text-red-500 hover:text-red-700">
+                  <button onClick={() => handleDelete(d.donor_id)} className="donor-deactivate-button">
                     Deactivate
                   </button>
                 )}
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
