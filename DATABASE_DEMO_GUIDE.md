@@ -24,7 +24,19 @@ flowchart LR
   API -->|JSON response| Visitor
 ```
 
-For the live demo, start PostgreSQL first, then start the backend and frontend in separate terminals. Open the frontend URL printed by Vite. Sign in and use a dashboard screen that loads data; the browser sends an API request, the backend queries PostgreSQL, and the API returns JSON to render.
+For the live demo, start PostgreSQL first, then run each app part in its own terminal:
+
+```powershell
+# Terminal 1: from the backend folder
+cd backend
+npm run dev
+
+# Terminal 2: from the frontend folder
+cd frontend
+npm run dev
+```
+
+Open the frontend URL printed by Vite (usually `http://localhost:5173`; if that port is busy, Vite prints another one). Sign in and open a dashboard screen that loads data; the browser sends an API request, the backend queries PostgreSQL, and the API returns JSON to render. The backend terminal should say `PostgreSQL connected`.
 
 ## Database design
 
