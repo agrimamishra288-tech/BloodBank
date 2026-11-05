@@ -46,7 +46,7 @@ backend/
 | Table | Description |
 |---|---|
 | `blood_groups` | Lookup: 8 valid blood group codes |
-| `blood_compatibility` | Donor → Recipient compatibility map (28 rows) |
+| `blood_compatibility` | Donor → Recipient compatibility map (27 rows) |
 | `blood_banks` | Registered blood bank centers |
 | `users` | Auth table — donors, hospital staff, admins |
 | `donors` | Donor profiles linked to users |
@@ -66,17 +66,17 @@ backend/
 | `vw_pending_requests` | Pending requests sorted by urgency |
 | `vw_expiring_soon` | Units expiring within 7 days |
 
-### Triggers (5)
+### Triggers (9)
 
 | Trigger | Action |
 |---|---|
 | `trg_updated_at` | Auto-updates `updated_at` on any table row change |
-| `trg_audit_inventory` | Logs all inventory changes to audit_log |
-| `trg_audit_requests` | Logs all request changes to audit_log |
+| `trg_audit_inventory` | Logs inventory inserts, updates and deletes to audit_log |
+| `trg_audit_requests` | Logs request inserts, updates and deletes to audit_log |
 | `trg_inventory_expiry` | Auto-sets expiry_date = collection_date + 42 days |
-| `trg_donor_donation_count` | Updates total_donations & last_donation_date after donation |
+| `trg_donor_donation_count` | Recalculates donor totals/dates from the donation ledger |
 
-### Stored Procedures / Functions (4)
+### Stored Procedures / Functions
 
 | Function | Description |
 |---|---|
@@ -134,12 +134,17 @@ NODE_ENV=development
 # Run schema + seed data together:
 npm run init-db
 
-# Or schema only:
-node src/db/init.js --schema-only
+# Or schema + migrations only (no seed):
+npm run init-db:schema
 
-# Or seed only (after schema is already created):
-node src/db/init.js --seed-only
+# Or try seed only (it skips when application data already exists):
+npm run init-db:seed
+
+# Print database location, row counts, schema objects, and integrity checks:
+npm run db:status
 ```
+
+For the ER diagram, pgAdmin walkthrough, table relationships, sample queries, and a teacher-ready explanation, see [`../DATABASE_DEMO_GUIDE.md`](../DATABASE_DEMO_GUIDE.md). Seed setup never truncates existing application data.
 
 ### 5. Start the Server
 

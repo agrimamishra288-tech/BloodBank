@@ -3,21 +3,18 @@
 -- Run AFTER schema.sql
 -- ============================================================
 
--- Clean slate (reverse FK order)
-TRUNCATE TABLE
-    audit_log, request_donor_matches, blood_requests, patients,
-    inventory, donations, donors, users, blood_banks,
-    blood_compatibility, blood_groups
-RESTART IDENTITY CASCADE;
+-- Seed is loaded only into an empty application database by init.js.
+-- This file intentionally contains no TRUNCATE or DELETE statements.
 
 -- ============================================================
 -- blood_groups
 -- ============================================================
 INSERT INTO blood_groups VALUES
-    ('A+'), ('A-'), ('B+'), ('B-'), ('AB+'), ('AB-'), ('O+'), ('O-');
+    ('A+'), ('A-'), ('B+'), ('B-'), ('AB+'), ('AB-'), ('O+'), ('O-')
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- blood_compatibility (28 rows — ABO + Rh rules)
+-- blood_compatibility (27 rows — ABO + Rh rules)
 -- ============================================================
 INSERT INTO blood_compatibility (donor_group, recipient_group) VALUES
     ('O-','O-'),('O-','O+'),('O-','A-'),('O-','A+'),
@@ -28,7 +25,8 @@ INSERT INTO blood_compatibility (donor_group, recipient_group) VALUES
     ('B-','B-'),('B-','B+'),('B-','AB-'),('B-','AB+'),
     ('B+','B+'),('B+','AB+'),
     ('AB-','AB-'),('AB-','AB+'),
-    ('AB+','AB+');
+    ('AB+','AB+')
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- blood_banks (5 banks across 4 cities)
@@ -104,8 +102,12 @@ INSERT INTO donors (user_id, blood_group, age, gender, city, state, address, las
     (25, 'B-',  28, 'M', 'Chennai',   'Tamil Nadu',  'Anna Nagar 2nd Avenue',   CURRENT_DATE - INTERVAL '91 days',  2);
 
 -- ============================================================
--- donations (12 rows — for donors who have donated)
+-- donations (12 explicit events plus generated lifetime history)
 -- ============================================================
+CREATE TEMP TABLE seed_donor_targets ON COMMIT DROP AS
+SELECT donor_id, total_donations AS target_total, last_donation_date AS target_last
+FROM donors;
+
 INSERT INTO donations (donor_id, bank_id, donation_date, volume_ml) VALUES
     (1, 1, CURRENT_DATE - INTERVAL '150 days', 450),
     (1, 1, CURRENT_DATE - INTERVAL '300 days', 450),
@@ -119,6 +121,41 @@ INSERT INTO donations (donor_id, bank_id, donation_date, volume_ml) VALUES
     (10, 3, CURRENT_DATE - INTERVAL '110 days', 450),
     (11, 4, CURRENT_DATE - INTERVAL '180 days', 450),
     (14, 5, CURRENT_DATE - INTERVAL '200 days', 460);
+
+-- Complete the sample donation ledger so the lifetime counters and dates are
+-- derived from actual donation rows. Additional history is spaced 100 days apart.
+WITH recorded AS (
+    SELECT donor_id, COUNT(*)::INT AS event_count, MIN(donation_date) AS oldest_event
+    FROM donations
+    GROUP BY donor_id
+), missing AS (
+    SELECT t.donor_id, t.target_total, t.target_last,
+           COALESCE(r.event_count, 0) AS event_count,
+           r.oldest_event,
+           GREATEST(t.target_total - COALESCE(r.event_count, 0), 0) AS missing_count
+    FROM seed_donor_targets t
+    LEFT JOIN recorded r ON r.donor_id = t.donor_id
+), history AS (
+    SELECT m.donor_id,
+           CASE
+             WHEN m.oldest_event IS NULL THEN COALESCE(m.target_last, CURRENT_DATE) - (g.n - 1) * INTERVAL '100 days'
+             ELSE m.oldest_event - g.n * INTERVAL '100 days'
+           END::DATE AS donation_date
+    FROM missing m
+    CROSS JOIN LATERAL generate_series(1, m.missing_count) AS g(n)
+)
+INSERT INTO donations (donor_id, bank_id, donation_date, volume_ml)
+SELECT h.donor_id,
+       COALESCE(bank.bank_id, 1),
+       h.donation_date,
+       450
+FROM history h
+JOIN donors d ON d.donor_id = h.donor_id
+LEFT JOIN LATERAL (
+    SELECT b.bank_id FROM blood_banks b
+    WHERE LOWER(b.city) = LOWER(d.city)
+    ORDER BY b.bank_id LIMIT 1
+) bank ON TRUE;
 
 -- ============================================================
 -- inventory (35 units across 5 banks, all blood groups covered)

@@ -8,7 +8,8 @@
     "dev": "nodemon src/app.js",
     "init-db": "node src/db/init.js",
     "init-db:schema": "node src/db/init.js --schema-only",
-    "init-db:seed": "node src/db/init.js --seed-only"
+    "init-db:seed": "node src/db/init.js --seed-only",
+    "db:status": "node src/db/status.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
