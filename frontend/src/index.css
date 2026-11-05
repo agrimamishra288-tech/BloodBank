@@ -360,9 +360,154 @@ html[data-theme="dark"] .donor-empty-state>span:last-child { color: #b5a6ad; }
 html[data-theme="dark"] .donor-empty-mark { border-color: #594048; color: #efb8ba; }
 html[data-theme="dark"] .donor-deactivate-button { color: #f3a6ac; }
 
+.inventory-page,.banks-page { display:flex; flex-direction:column; gap:22px; color:#332b2c; }
+.inventory-page-header,.banks-page-header { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+.inventory-intro,.banks-intro { margin-top:7px; color:#897d7a; font-size:13px; }
+.inventory-header-note,.banks-header-mark { display:flex; align-items:center; gap:9px; border:1px solid #eee3de; border-radius:999px; background:rgba(255,255,255,.72); padding:9px 13px; color:#786b68; font-size:10px; font-weight:700; }
+.inventory-live-dot,.bank-status i { width:7px; height:7px; border-radius:50%; background:#6b9a7a; box-shadow:0 0 0 3px rgba(107,154,122,.12); }
+.inventory-metrics,.banks-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:13px; }
+.inventory-metric,.banks-metrics article { min-width:0; border:1px solid #eee7e2; border-radius:17px; background:#fff; padding:16px 18px; box-shadow:0 3px 13px rgba(47,37,32,.025); }
+.inventory-metric>span,.banks-metrics article>span { color:#938682; font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }
+.inventory-metric>strong,.banks-metrics article>strong { display:block; margin-top:8px; color:#3a3032; font-family:'Manrope',sans-serif; font-size:27px; font-weight:800; letter-spacing:-.05em; line-height:1; }
+.inventory-metric>p,.banks-metrics article>p { margin-top:7px; color:#9a8d89; font-size:10px; }
+.inventory-metric-attention>strong,.inventory-metric-expiry>strong { color:#a23c42; }
+.inventory-tabs { display:flex; width:fit-content; max-width:100%; gap:4px; border:1px solid #eee6e1; border-radius:14px; background:#f1ece8; padding:4px; }
+.inventory-tabs button { display:flex; align-items:center; gap:8px; border:0; border-radius:10px; background:transparent; padding:9px 13px; color:#776b68; font-size:11px; font-weight:700; white-space:nowrap; transition:.16s ease; }
+.inventory-tabs button:hover { color:#9d2935; }
+.inventory-tabs button.active { background:#fff; color:#912c39; box-shadow:0 2px 7px rgba(70,36,44,.08); }
+.inventory-tabs button span { display:inline-grid; min-width:19px; height:19px; place-items:center; border-radius:999px; background:#f3e9e4; color:#8a5559; font-size:9px; }
+.inventory-stock-section,.inventory-table-panel,.banks-directory-panel { border:1px solid #eee7e2; border-radius:20px; background:#fff; padding:20px; box-shadow:0 4px 18px rgba(53,38,34,.025); }
+.inventory-section-heading,.banks-directory-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.inventory-section-heading h2,.banks-directory-heading h2 { color:#352d2e; font-family:'Manrope',sans-serif; font-size:16px; font-weight:800; letter-spacing:-.025em; }
+.inventory-section-heading p,.banks-directory-heading p { margin-top:4px; color:#9a8d89; font-size:11px; }
+.inventory-section-tag { flex:0 0 auto; border:1px solid #eee5e0; border-radius:999px; padding:5px 9px; color:#98696c; font-size:9px; font-weight:800; letter-spacing:.12em; }
+.inventory-section-tag-warm { border-color:#f0e0cf; background:#fffaf4; color:#9a7148; }
+.inventory-group-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.inventory-group-card { min-width:0; border:1px solid #eee8e3; border-radius:15px; background:linear-gradient(145deg,#fff,#fdfaf8); padding:15px; }
+.inventory-group-card.is-low { border-color:#efd8d5; background:linear-gradient(145deg,#fff,#fff8f6); }
+.inventory-group-top { display:flex; align-items:center; justify-content:space-between; gap:7px; }
+.inventory-stock-state { color:#728475; font-size:9px; font-weight:700; }
+.inventory-stock-state.is-low { color:#a5753c; }
+.inventory-stock-state.is-empty { color:#a33a43; }
+.inventory-group-count { display:flex; align-items:baseline; gap:7px; margin-top:18px; }
+.inventory-group-count strong { color:#393033; font-family:'Manrope',sans-serif; font-size:29px; font-weight:800; letter-spacing:-.06em; }
+.inventory-group-count span { color:#958986; font-size:10px; }
+.inventory-meter { height:5px; overflow:hidden; margin-top:11px; border-radius:99px; background:#f0e9e5; }
+.inventory-meter span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#9d2935,#d47d77); transition:width .3s ease; }
+.inventory-group-card.is-low .inventory-meter span { background:linear-gradient(90deg,#b54b49,#e3a16a); }
+.inventory-earliest { display:flex; justify-content:space-between; gap:6px; margin-top:12px; color:#978985; font-size:9px; }
+.inventory-earliest strong { color:#6c6060; font-weight:700; }
+.inventory-table-scroll { overflow-x:auto; border:1px solid #eee8e3; border-radius:13px; }
+.inventory-table { width:100%; border-collapse:collapse; text-align:left; font-size:11px; }
+.inventory-table thead { background:#faf7f5; color:#887d79; }
+.inventory-table th { padding:12px 15px; font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+.inventory-table td { border-top:1px solid #f0ebe7; padding:12px 15px; color:#62595a; white-space:nowrap; }
+.inventory-table tbody tr { transition:background .15s ease; }
+.inventory-table tbody tr:hover { background:#fcf9f7; }
+.inventory-table tbody tr.urgent-row { background:#fff8f6; }
+.inventory-table td strong { display:block; color:#43393a; font-weight:700; }
+.inventory-cell-subtitle { display:block; margin-top:3px; color:#9c908c; font-size:9px; }
+.inventory-unit-id { color:#918582; font-variant-numeric:tabular-nums; font-weight:700; }
+.inventory-days-left { display:inline-flex; border-radius:999px; background:#fff5e8; padding:5px 9px; color:#956638; font-size:10px; font-weight:700; }
+.inventory-days-left.is-urgent { background:#fbe8e6; color:#a33740; }
+.inventory-filters { display:flex; align-items:flex-end; gap:12px; margin-bottom:15px; }
+.inventory-filters label { display:grid; width:min(220px,40%); gap:6px; color:#776b68; font-size:10px; font-weight:700; }
+.inventory-empty { display:flex; min-height:175px; flex-direction:column; align-items:center; justify-content:center; border:1px dashed #e6d9d4; border-radius:15px; text-align:center; }
+.inventory-empty>span { display:grid; width:34px; height:34px; place-items:center; border:1px solid #eadbd5; border-radius:11px; color:#9c444d; font-weight:800; }
+.inventory-empty strong { margin-top:10px; color:#524649; font-size:12px; }
+.inventory-empty p,.inventory-loading p,.banks-loading p { margin-top:4px; color:#948783; font-size:10px; }
+.inventory-loading,.banks-loading { display:flex; min-height:230px; flex-direction:column; align-items:center; justify-content:center; }
+.inventory-loading-line { display:block; width:38px; height:3px; border-radius:9px; background:linear-gradient(90deg,#9d2935 40%,#efded8 40%); animation:donor-loading 1s ease-in-out infinite alternate; }
+.banks-header-mark { border-radius:14px; }
+.bank-mark { display:grid; width:39px; height:39px; flex:0 0 39px; place-items:center; border:1px solid #efded8; border-radius:13px; background:#fbf0ec; color:#9d3843; }
+.bank-mark svg { width:20px; height:20px; }
+.banks-header-mark .bank-mark { width:29px; height:29px; flex-basis:29px; border-radius:10px; }
+.banks-header-mark .bank-mark svg { width:16px; height:16px; }
+.banks-directory-panel { padding:20px; }
+.banks-directory-heading { flex-wrap:wrap; }
+.banks-search { display:flex; width:min(300px,100%); align-items:center; gap:9px; border:1px solid #e9e1dc; border-radius:12px; background:#fff; padding:0 12px; }
+.banks-search svg { width:17px; height:17px; flex:0 0 17px; color:#9a8a86; }
+.banks-search input { width:100%; border:0; outline:0; background:transparent; padding:10px 0; color:#403739; font-size:11px; }
+.banks-search input::placeholder { color:#aa9e99; }
+.banks-result-line { margin:-3px 0 14px; color:#9a8d89; font-size:10px; }
+.banks-result-line strong { color:#514749; }
+.banks-card-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.bank-card { position:relative; min-width:0; overflow:hidden; border:1px solid #eee7e2; border-radius:17px; background:linear-gradient(145deg,#fff 60%,#fdf9f6); padding:17px; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.bank-card:hover { transform:translateY(-2px); border-color:#e3c8c3; box-shadow:0 10px 28px rgba(70,38,43,.07); }
+.bank-card-header { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.bank-status { display:inline-flex; align-items:center; gap:7px; border:1px solid #dce9df; border-radius:999px; background:#f5faf6; padding:5px 8px; color:#5b8168; font-size:9px; font-weight:700; }
+.bank-status i { width:6px; height:6px; box-shadow:none; }
+.bank-status.is-inactive { border-color:#e9e3e2; background:#f8f6f5; color:#918885; }
+.bank-status.is-inactive i { background:#a99e9b; box-shadow:none; }
+.bank-card h3 { margin-top:15px; color:#392f31; font-family:'Manrope',sans-serif; font-size:14px; font-weight:800; line-height:1.4; }
+.bank-address { min-height:30px; margin-top:5px; color:#897d7a; font-size:10px; line-height:1.5; }
+.bank-location-line { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; color:#675b5d; font-size:10px; font-weight:700; }
+.bank-location-line i { width:3px; height:3px; border-radius:50%; background:#c3aaa3; }
+.bank-contact-list { display:grid; gap:7px; margin-top:14px; }
+.bank-contact-list a { display:flex; min-width:0; justify-content:space-between; gap:10px; border-top:1px solid #f0ebe7; padding-top:8px; text-decoration:none; }
+.bank-contact-label { flex:0 0 auto; color:#a0928d; font-size:9px; font-weight:700; text-transform:uppercase; }
+.bank-contact-list strong { overflow:hidden; color:#66595b; font-size:10px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.bank-contact-list a:hover strong { color:#982f3c; }
+.bank-stock-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:15px; border-top:1px solid #eee7e2; padding-top:13px; }
+.bank-stock-footer span { color:#615557; font-size:10px; font-weight:700; }
+.bank-stock-footer p { margin-top:3px; color:#a0928d; font-size:9px; }
+.bank-stock-footer>strong { color:#3a3032; font-family:'Manrope',sans-serif; font-size:23px; font-weight:800; letter-spacing:-.05em; }
+.bank-stock-footer small { color:#8e817c; font-family:'DM Sans',sans-serif; font-size:9px; font-weight:600; letter-spacing:0; }
+.banks-empty { display:flex; min-height:205px; flex-direction:column; align-items:center; justify-content:center; border:1px dashed #e6d9d4; border-radius:15px; text-align:center; }
+.banks-empty strong { margin-top:10px; color:#524649; font-size:12px; }
+.banks-empty p { margin-top:4px; color:#948783; font-size:10px; }
+
+html[data-theme="dark"] .inventory-page,html[data-theme="dark"] .banks-page { color:#eee7ea; }
+html[data-theme="dark"] .inventory-intro,html[data-theme="dark"] .banks-intro { color:#b2a4ac; }
+html[data-theme="dark"] .inventory-header-note,html[data-theme="dark"] .banks-header-mark { border-color:#39333b; background:#252128; color:#d0c2c9; }
+html[data-theme="dark"] .inventory-metric,html[data-theme="dark"] .banks-metrics article,html[data-theme="dark"] .inventory-stock-section,html[data-theme="dark"] .inventory-table-panel,html[data-theme="dark"] .banks-directory-panel { border-color:#39333b; background:#221f25; box-shadow:0 5px 20px rgba(0,0,0,.12); }
+html[data-theme="dark"] .inventory-metric>span,html[data-theme="dark"] .banks-metrics article>span,html[data-theme="dark"] .inventory-metric>p,html[data-theme="dark"] .banks-metrics article>p { color:#b2a4ac; }
+html[data-theme="dark"] .inventory-metric>strong,html[data-theme="dark"] .banks-metrics article>strong,html[data-theme="dark"] .inventory-group-count strong,html[data-theme="dark"] .bank-stock-footer>strong { color:#f1e7eb; }
+html[data-theme="dark"] .inventory-tabs { border-color:#39333b; background:#1e1b20; }
+html[data-theme="dark"] .inventory-tabs button { color:#c4b7be; }
+html[data-theme="dark"] .inventory-tabs button.active { background:#382c35; color:#ffc2bf; }
+html[data-theme="dark"] .inventory-tabs button span { background:#49343d; color:#e8b8ba; }
+html[data-theme="dark"] .inventory-section-heading h2,html[data-theme="dark"] .banks-directory-heading h2 { color:#f3ebee; }
+html[data-theme="dark"] .inventory-section-heading p,html[data-theme="dark"] .banks-directory-heading p,html[data-theme="dark"] .inventory-group-count span,html[data-theme="dark"] .inventory-earliest { color:#b2a4ac; }
+html[data-theme="dark"] .inventory-section-tag { border-color:#4a3c44; color:#d4aeb0; }
+html[data-theme="dark"] .inventory-section-tag-warm { border-color:#554332; background:#30271f; color:#d7b58a; }
+html[data-theme="dark"] .inventory-group-card,html[data-theme="dark"] .bank-card { border-color:#39333b; background:linear-gradient(145deg,#252128,#211e24); }
+html[data-theme="dark"] .inventory-group-card.is-low { border-color:#604044; background:linear-gradient(145deg,#2a2227,#241e23); }
+html[data-theme="dark"] .inventory-meter { background:#403840; }
+html[data-theme="dark"] .inventory-earliest strong { color:#dfd3d8; }
+html[data-theme="dark"] .inventory-table-scroll { border-color:#39333b; }
+html[data-theme="dark"] .inventory-table thead { background:#2a252c; color:#bcaeb5; }
+html[data-theme="dark"] .inventory-table td { border-color:#39333b; color:#d0c5cb; }
+html[data-theme="dark"] .inventory-table tbody tr:hover { background:#2b262d; }
+html[data-theme="dark"] .inventory-table tbody tr.urgent-row { background:#35252a; }
+html[data-theme="dark"] .inventory-table td strong,html[data-theme="dark"] .banks-result-line strong { color:#f0e7eb; }
+html[data-theme="dark"] .inventory-cell-subtitle,html[data-theme="dark"] .inventory-unit-id { color:#b3a5ad; }
+html[data-theme="dark"] .inventory-days-left { background:#392e25; color:#e4bd87; }
+html[data-theme="dark"] .inventory-days-left.is-urgent { background:#45282e; color:#f0a5ad; }
+html[data-theme="dark"] .inventory-empty,html[data-theme="dark"] .banks-empty { border-color:#484047; }
+html[data-theme="dark"] .inventory-empty strong,html[data-theme="dark"] .banks-empty strong { color:#e8dfe3; }
+html[data-theme="dark"] .inventory-empty p,html[data-theme="dark"] .banks-empty p,html[data-theme="dark"] .inventory-loading p,html[data-theme="dark"] .banks-loading p { color:#b5a6ad; }
+html[data-theme="dark"] .inventory-empty>span { border-color:#594048; color:#efb8ba; }
+html[data-theme="dark"] .banks-search { border-color:#443941; background:#201d23; }
+html[data-theme="dark"] .banks-search input { color:#f1e9ed; }
+html[data-theme="dark"] .banks-search input::placeholder { color:#9b8d95; }
+html[data-theme="dark"] .banks-result-line { color:#b2a4ac; }
+html[data-theme="dark"] .bank-mark { border-color:#594048; background:#382a31; color:#f1bdba; }
+html[data-theme="dark"] .bank-status { border-color:#365141; background:#25342b; color:#abd0b2; }
+html[data-theme="dark"] .bank-status.is-inactive { border-color:#484047; background:#302b31; color:#b3a7ad; }
+html[data-theme="dark"] .bank-card h3 { color:#f1e8ec; }
+html[data-theme="dark"] .bank-address,html[data-theme="dark"] .bank-contact-label,html[data-theme="dark"] .bank-stock-footer p { color:#b2a4ac; }
+html[data-theme="dark"] .bank-location-line,html[data-theme="dark"] .bank-stock-footer span { color:#ded2d8; }
+html[data-theme="dark"] .bank-contact-list a,html[data-theme="dark"] .bank-stock-footer { border-color:#39333b; }
+html[data-theme="dark"] .bank-contact-list strong,html[data-theme="dark"] .bank-stock-footer small { color:#c9bbc3; }
+html[data-theme="dark"] .bank-contact-list a:hover strong { color:#ffc2bf; }
+
 @media (max-width: 900px) {
   .donor-card-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .donor-filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .inventory-metrics,.banks-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .inventory-group-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .banks-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 560px) {
   .donor-page-header { align-items: flex-start; flex-direction: column; }
@@ -370,6 +515,15 @@ html[data-theme="dark"] .donor-deactivate-button { color: #f3a6ac; }
   .donor-filter-grid,.donor-card-grid { grid-template-columns: 1fr; }
   .donor-clear-button { width: 100%; }
   .donor-card { padding: 18px; }
+  .inventory-page-header,.banks-page-header { align-items:flex-start; flex-direction:column; }
+  .inventory-tabs { width:100%; overflow-x:auto; }
+  .inventory-tabs button { flex:1 0 auto; justify-content:center; padding:8px 10px; }
+  .inventory-stock-section,.inventory-table-panel,.banks-directory-panel { padding:15px; }
+  .inventory-section-heading,.banks-directory-heading { align-items:flex-start; flex-direction:column; }
+  .inventory-group-grid,.banks-card-grid { grid-template-columns:1fr; }
+  .inventory-filters { align-items:stretch; flex-direction:column; }
+  .inventory-filters label { width:100%; }
+  .banks-search { width:100%; }
 }
 html[data-theme="dark"] .auth-page { background: radial-gradient(ellipse at 84% 8%, #3b2b30 0, transparent 30%), #19161b; }
 html[data-theme="dark"] .auth-card { border-color: #3a3039; background: #252128; box-shadow: 0 20px 70px rgba(0,0,0,.3); }
