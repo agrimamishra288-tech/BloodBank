@@ -456,6 +456,28 @@ html[data-theme="dark"] .donor-deactivate-button { color: #f3a6ac; }
 .banks-empty { display:flex; min-height:205px; flex-direction:column; align-items:center; justify-content:center; border:1px dashed #e6d9d4; border-radius:15px; text-align:center; }
 .banks-empty strong { margin-top:10px; color:#524649; font-size:12px; }
 .banks-empty p { margin-top:4px; color:#948783; font-size:10px; }
+.banks-header-mark { text-decoration:none; }
+.banks-header-mark:hover { border-color:#dbb5ad; color:#9d3843; }
+.banks-header-mark b { color:#a33a43; font-size:12px; }
+.banks-view-tabs { display:flex; width:fit-content; max-width:100%; gap:4px; border:1px solid #eee6e1; border-radius:14px; background:#f1ece8; padding:4px; }
+.banks-view-tabs button { display:flex; align-items:center; gap:9px; border:0; border-radius:10px; background:transparent; padding:9px 13px; color:#776b68; font-size:11px; font-weight:700; white-space:nowrap; }
+.banks-view-tabs button.active { background:#fff; color:#912c39; box-shadow:0 2px 7px rgba(70,36,44,.08); }
+.banks-view-tabs button span { border-radius:999px; background:#f3e9e4; padding:4px 7px; color:#8a5559; font-size:9px; }
+.public-bank-card { min-height:280px; }
+.public-bank-category { border:1px solid #eee5df; border-radius:999px; background:#faf6f2; padding:5px 8px; color:#8e6d67; font-size:9px; font-weight:700; }
+.bank-public-facilities { display:flex; flex-wrap:wrap; gap:5px; margin-top:11px; }
+.bank-public-facilities span { border:1px solid #e9e4df; border-radius:999px; background:#faf9f7; padding:4px 7px; color:#756a67; font-size:8px; font-weight:700; }
+.bank-website,.bank-map-link { display:inline-flex; align-items:center; gap:5px; margin-top:11px; color:#993541; font-size:10px; font-weight:700; text-decoration:none; }
+.bank-website:hover,.bank-map-link:hover { text-decoration:underline; }
+.banks-pagination { display:flex; align-items:center; justify-content:center; gap:16px; margin-top:19px; }
+.banks-pagination span { color:#8f827e; font-size:10px; }
+.banks-pagination strong { color:#473a3c; }
+.banks-pagination button { min-height:34px; padding:7px 11px; font-size:10px; }
+.banks-source-note { display:grid; grid-template-columns:1fr auto; align-items:center; gap:5px 16px; margin-top:19px; border:1px solid #f0e4dc; border-radius:13px; background:#fdf9f6; padding:13px 15px; }
+.banks-source-note strong { color:#654d4c; font-size:10px; }
+.banks-source-note p { color:#91817c; font-size:9px; line-height:1.55; }
+.banks-source-note a { grid-column:2; grid-row:1 / span 2; color:#9b3b43; font-size:9px; font-weight:700; text-decoration:none; white-space:nowrap; }
+.banks-source-note a:hover { text-decoration:underline; }
 
 html[data-theme="dark"] .inventory-page,html[data-theme="dark"] .banks-page { color:#eee7ea; }
 html[data-theme="dark"] .inventory-intro,html[data-theme="dark"] .banks-intro { color:#b2a4ac; }
@@ -492,6 +514,19 @@ html[data-theme="dark"] .banks-search { border-color:#443941; background:#201d23
 html[data-theme="dark"] .banks-search input { color:#f1e9ed; }
 html[data-theme="dark"] .banks-search input::placeholder { color:#9b8d95; }
 html[data-theme="dark"] .banks-result-line { color:#b2a4ac; }
+html[data-theme="dark"] .banks-view-tabs { border-color:#39333b; background:#1e1b20; }
+html[data-theme="dark"] .banks-view-tabs button { color:#c4b7be; }
+html[data-theme="dark"] .banks-view-tabs button.active { background:#382c35; color:#ffc2bf; }
+html[data-theme="dark"] .banks-view-tabs button span { background:#49343d; color:#e8b8ba; }
+html[data-theme="dark"] .public-bank-category { border-color:#4a3c44; background:#30262c; color:#d0afb0; }
+html[data-theme="dark"] .bank-public-facilities span { border-color:#443941; background:#2a252c; color:#c9bbc3; }
+html[data-theme="dark"] .bank-website,html[data-theme="dark"] .bank-map-link,html[data-theme="dark"] .banks-header-mark b { color:#ffc2bf; }
+html[data-theme="dark"] .banks-pagination span { color:#b2a4ac; }
+html[data-theme="dark"] .banks-pagination strong { color:#f1e7eb; }
+html[data-theme="dark"] .banks-source-note { border-color:#4a3c44; background:#2a242b; }
+html[data-theme="dark"] .banks-source-note strong { color:#e3ced2; }
+html[data-theme="dark"] .banks-source-note p { color:#b5a6ad; }
+html[data-theme="dark"] .banks-source-note a { color:#ffc2bf; }
 html[data-theme="dark"] .bank-mark { border-color:#594048; background:#382a31; color:#f1bdba; }
 html[data-theme="dark"] .bank-status { border-color:#365141; background:#25342b; color:#abd0b2; }
 html[data-theme="dark"] .bank-status.is-inactive { border-color:#484047; background:#302b31; color:#b3a7ad; }
@@ -524,6 +559,12 @@ html[data-theme="dark"] .bank-contact-list a:hover strong { color:#ffc2bf; }
   .inventory-filters { align-items:stretch; flex-direction:column; }
   .inventory-filters label { width:100%; }
   .banks-search { width:100%; }
+  .banks-view-tabs { width:100%; overflow-x:auto; }
+  .banks-view-tabs button { flex:1 0 auto; justify-content:center; padding:8px 9px; }
+  .banks-pagination { gap:8px; }
+  .banks-pagination span { white-space:nowrap; }
+  .banks-source-note { grid-template-columns:1fr; }
+  .banks-source-note a { grid-column:auto; grid-row:auto; }
 }
 html[data-theme="dark"] .auth-page { background: radial-gradient(ellipse at 84% 8%, #3b2b30 0, transparent 30%), #19161b; }
 html[data-theme="dark"] .auth-card { border-color: #3a3039; background: #252128; box-shadow: 0 20px 70px rgba(0,0,0,.3); }

@@ -4,6 +4,64 @@ const { pool }         = require('../db/pool');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { createError }  = require('../middleware/error.middleware');
 
+// GET /api/banks/directory — public reference snapshot, separate from
+// operational Hemora banks and their inventory.
+router.get('/directory', async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 24));
+    const offset = (page - 1) * limit;
+    const conditions = [];
+    const params = [];
+
+    if (req.query.search?.trim()) {
+      params.push(`%${req.query.search.trim()}%`);
+      conditions.push(`(name ILIKE $${params.length} OR city ILIKE $${params.length} OR district ILIKE $${params.length} OR state ILIKE $${params.length} OR pincode ILIKE $${params.length})`);
+    }
+    if (req.query.state?.trim()) {
+      params.push(`%${req.query.state.trim()}%`);
+      conditions.push(`state ILIKE $${params.length}`);
+    }
+    if (req.query.city?.trim()) {
+      params.push(`%${req.query.city.trim()}%`);
+      conditions.push(`city ILIKE $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const count = await pool.query(
+      `SELECT COUNT(*)::INT AS total FROM public_blood_bank_directory ${where}`,
+      params,
+    );
+    params.push(limit, offset);
+    const { rows } = await pool.query(
+      `SELECT external_id, name, address, city, district, state, pincode,
+              contact_phone, helpline, website, category, has_components,
+              has_apheresis, service_hours, latitude, longitude,
+              source_updated_at, snapshot_version, source_name, source_url
+       FROM public_blood_bank_directory ${where}
+       ORDER BY state, city, name
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+    res.json({
+      success: true,
+      total: count.rows[0].total,
+      page,
+      limit,
+      data: rows,
+      source: {
+        name: 'Blood Bank Directory, National Health Portal / NIHFW / MoHFW via data.gov.in',
+        url: 'https://www.data.gov.in/resource/blood-bank-directory-updated-till-last-month',
+        snapshot_version: '2026-11-03',
+        source_updated_at: '2022-07-12',
+        note: 'Reference listings only. Contact the centre to confirm details; live stock is not included.',
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── GET /api/banks ────────────────────────────────────────────
 router.get('/', async (req, res, next) => {
   try {

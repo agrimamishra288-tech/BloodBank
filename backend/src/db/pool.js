@@ -32,4 +32,13 @@ async function testConnection() {
   }
 }
 
-module.exports = { pool, testConnection };
+async function expireStaleInventory() {
+  const result = await pool.query(`
+    UPDATE inventory
+    SET status = 'expired', updated_at = NOW()
+    WHERE status = 'available' AND expiry_date < CURRENT_DATE
+  `);
+  return result.rowCount;
+}
+
+module.exports = { pool, testConnection, expireStaleInventory };

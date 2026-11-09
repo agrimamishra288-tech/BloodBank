@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
-const { testConnection } = require('./db/pool');
+const { testConnection, expireStaleInventory } = require('./db/pool');
 
 const authRoutes      = require('./routes/auth.routes');
 const donorRoutes     = require('./routes/donors.routes');
@@ -45,6 +45,12 @@ app.use(errorHandler);
 async function start() {
   try {
     await testConnection();
+    const expiredAtStartup = await expireStaleInventory();
+    if (expiredAtStartup) console.log(`Marked ${expiredAtStartup} expired inventory unit(s).`);
+    const expirySweep = setInterval(() => {
+      expireStaleInventory().catch((error) => console.error('Inventory expiry check failed:', error.message));
+    }, 60 * 60 * 1000);
+    expirySweep.unref();
     app.listen(PORT, () => {
       console.log(`🚀 Server → http://localhost:${PORT}`);
       console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);

@@ -140,7 +140,7 @@ export default function Donors() {
         <div>
           <p className="eyebrow">PEOPLE · DONOR DIRECTORY</p>
           <h1 className="page-title mt-2">Donor network</h1>
-          <p className="donor-page-intro">Find eligible donors by blood group and location.</p>
+          <p className="donor-page-intro">{['admin','hospital'].includes(user?.role) ? 'Find eligible donors by blood group and location.' : 'Browse the donor network by blood group and location.'}</p>
         </div>
         {(user?.role === 'admin' || user?.role === 'hospital') && (
           <button className="btn-primary" onClick={() => setShowForm(true)}><span aria-hidden="true">+</span> Register donor</button>
@@ -209,17 +209,17 @@ export default function Donors() {
                 </div>
                 <BloodGroupBadge group={d.blood_group} size="lg" />
               </div>
-              <div className="donor-profile-meta">
-                <div><span>Age</span><strong>{d.age}</strong></div>
-                <div><span>Gender</span><strong>{d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Other'}</strong></div>
-                <div><span>Donations</span><strong>{d.total_donations}</strong></div>
-              </div>
+              {(d.age != null || d.gender != null || d.total_donations != null) && <div className="donor-profile-meta">
+                {d.age != null && <div><span>Age</span><strong>{d.age}</strong></div>}
+                {d.gender != null && <div><span>Gender</span><strong>{d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Other'}</strong></div>}
+                {d.total_donations != null && <div><span>Donations</span><strong>{d.total_donations}</strong></div>}
+              </div>}
               <div className="donor-card-footer">
-                <div className="donor-last-donation">
+                {d.last_donation_date !== null && d.last_donation_date !== undefined && <div className="donor-last-donation">
                   <span>Last donation</span>
                   <strong>{d.last_donation_date ? new Date(d.last_donation_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No previous donation'}</strong>
-                </div>
-                <EligibleBadge eligible={d.eligible} />
+                </div>}
+                {d.eligible !== null && d.eligible !== undefined ? <EligibleBadge eligible={d.eligible} /> : <span className="donor-profile-private">Profile visible to staff</span>}
                 {user?.role === 'admin' && (
                   <button onClick={() => handleDelete(d.donor_id)} className="donor-deactivate-button">
                     Deactivate

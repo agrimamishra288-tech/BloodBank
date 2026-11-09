@@ -7,7 +7,7 @@
 | Project type | Student capstone / DBMS application |
 | Product name | Hemora (BloodBank system) |
 | Document status | Current-state PRD based on the project repository |
-| Revision date | 5 November 2026 |
+| Revision date | 10 November 2026 |
 | Platform | Responsive web application |
 
 ## 1. Product summary
@@ -70,6 +70,7 @@ The student or teacher inspects the application, API behavior, PostgreSQL schema
 - JWT-based API authentication and role checks.
 - Donor directory, donor profile and donation history.
 - Blood bank directory and bank stock views.
+- A separately stored national public blood-bank facility directory snapshot, with visible source attribution and freshness caveat.
 - Donation recording and inventory management.
 - Patient blood request creation, listing and status tracking.
 - Compatible donor matching and request donor notifications recorded by the system.
@@ -137,6 +138,8 @@ Priority meanings: **P0** essential for core demonstration; **P1** important sup
 | FR-14 | Users can switch the interface between light and dark themes. | P1 | Implemented |
 | FR-15 | Administrators can browse blood banks and manage supported bank records. | P1 | Implemented through role-protected API and bank views |
 | FR-16 | Operators can inspect database connection details, row counts, schema object counts, and integrity summaries without exposing user records. | P1 | Implemented by `npm run db:status` |
+| FR-17 | Visitors can search and page through the public facility directory while seeing its source and freshness caveat. | P1 | Implemented from a sourced public snapshot |
+| FR-18 | Donor and patient contact details are limited to authenticated roles that need them; donor users see anonymized directory/request details. | P0 | Implemented and smoke-checked |
 
 ## 8. Data and DBMS requirements
 
@@ -150,6 +153,7 @@ The PostgreSQL database `bloodbank` contains 11 application tables:
 | `donors` | Donor-specific profile and eligibility fields |
 | `donations` | Source ledger of donation events |
 | `blood_banks` | Collection and storage locations |
+| `public_blood_bank_directory` | Public facility reference snapshot, separate from project-operated centres and inventory |
 | `inventory` | Individual blood units, status, bank, and expiry |
 | `patients` | Patient information referenced by a request |
 | `blood_requests` | Blood group, quantity, urgency, and fulfillment state |
@@ -170,6 +174,7 @@ The `schema_migrations` table tracks database upgrades and is infrastructure met
 - Fulfillment cannot issue an expired, unavailable, incompatible, duplicate, or excess inventory selection.
 - Indexes support common searches for donor location/group, stock availability/expiry, requests, and histories.
 - Four views provide report-ready inventory, eligible donors, pending requests, and expiring stock.
+- The public directory snapshot is searchable and paginated separately from project-operated banks; it is not treated as live inventory.
 - Triggers maintain timestamps/expiry, synchronize donor history, and audit critical stock/request changes.
 - Transactions and row locks protect multi-record donation and fulfillment operations.
 
@@ -195,6 +200,7 @@ The frontend owns display and client-side form feedback. The API owns request va
 
 - Store passwords as bcrypt hashes, never as plaintext.
 - Require signed JWTs for protected endpoints and role checks for restricted operations.
+- Require authentication for donor/request lists and dashboard endpoints; redact donor identity and patient contact details from donor-role list responses.
 - Use parameterized SQL for user-provided values.
 - Keep database credentials, JWT signing secrets, and OAuth secrets outside source control.
 - Avoid exposing sensitive personal data in health/status reports.
@@ -234,6 +240,8 @@ The frontend owns display and client-side form feedback. The API owns request va
 ## 12. Assumptions, constraints, and risks
 
 - Current local configuration uses a PostgreSQL service installed on the development computer.
+- The imported public blood-bank directory reflects an official source that its publisher reports was last updated on 12 July 2022; facility details may have changed.
+- e-RaktKosh is linked for current stock checks, but the project does not currently synchronize live blood availability from it.
 - Demo/sample records may not represent actual donors, inventory, banks, or medical availability.
 - Phone/password authentication is not phone-number verification; there is no OTP flow.
 - Google authentication depends on OAuth credentials and correct authorized-origin configuration.

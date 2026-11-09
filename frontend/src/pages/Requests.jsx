@@ -214,10 +214,10 @@ function MatchPanel({ requestId, onClose }) {
                           {d.is_exact_match && <span className="badge bg-green-100 text-green-700">Exact</span>}
                           {(user?.role === 'admin' || user?.role === 'hospital') && (
                             notified.has(d.donor_id) ? (
-                              <span className="badge bg-blue-100 text-blue-700">Notified ✓</span>
+                              <span className="badge bg-blue-100 text-blue-700">Match recorded</span>
                             ) : (
                               <button onClick={() => notify(d.donor_id)} className="btn-secondary text-sm !py-1">
-                                Notify
+                                Record match
                               </button>
                             )
                           )}
@@ -383,9 +383,9 @@ export default function Requests() {
                 <div className="flex flex-wrap items-center gap-2">
                   <UrgencyBadge urgency={r.urgency} />
                   <StatusBadge status={r.status} />
-                  {(r.status === 'pending' || r.status === 'matched') && (
+                  {['admin', 'hospital'].includes(user?.role) && (r.status === 'pending' || r.status === 'matched') && (
                     <button onClick={() => setMatching(r.request_id)} className="btn-primary text-sm !py-1">
-                      🔍 Find Matching Donors
+                      Find compatible donors
                     </button>
                   )}
                 </div>

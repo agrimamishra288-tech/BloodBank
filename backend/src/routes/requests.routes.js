@@ -15,7 +15,7 @@ const COMPAT_NOTE = {
 
 // ── GET /api/requests ─────────────────────────────────────────
 // All requests sorted by urgency (critical → urgent → normal), then date
-router.get('/', async (req, res, next) => {
+router.get('/', authenticate, async (req, res, next) => {
   try {
     const { status, urgency, blood_group, city, page = 1, limit = 20 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
@@ -29,17 +29,21 @@ router.get('/', async (req, res, next) => {
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     params.push(Number(limit), offset);
+    const canViewPatientDetails = ['admin', 'hospital'].includes(req.user.role);
 
     const { rows } = await pool.query(
       `SELECT
-         r.*,
-         p.name            AS patient_name,
+         r.request_id, r.requested_by, r.blood_group, r.units_needed,
+         r.units_fulfilled, r.city, r.urgency, r.status, r.request_date,
+         r.updated_at,
+         CASE WHEN ${canViewPatientDetails} THEN r.notes ELSE NULL END AS notes,
+         CASE WHEN ${canViewPatientDetails} THEN p.name ELSE 'Patient request' END AS patient_name,
          p.hospital_name,
          p.hospital_city,
-         p.contact_phone   AS patient_contact,
-         p.gender          AS patient_gender,
-         p.age             AS patient_age,
-         u.name            AS requested_by_name
+         CASE WHEN ${canViewPatientDetails} THEN p.contact_phone ELSE NULL END AS patient_contact,
+         CASE WHEN ${canViewPatientDetails} THEN p.gender ELSE NULL END AS patient_gender,
+         CASE WHEN ${canViewPatientDetails} THEN p.age ELSE NULL END AS patient_age,
+         CASE WHEN ${canViewPatientDetails} THEN u.name ELSE 'Hospital team' END AS requested_by_name
        FROM blood_requests r
        JOIN patients p ON p.patient_id = r.patient_id
        JOIN users    u ON u.user_id    = r.requested_by
@@ -115,7 +119,7 @@ router.post('/', authenticate, async (req, res, next) => {
 });
 
 // ── GET /api/requests/:id ─────────────────────────────────────
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', authenticate, authorize('admin','hospital'), async (req, res, next) => {
   try {
     const { rows: req_rows } = await pool.query(
       `SELECT r.*, p.name AS patient_name, p.hospital_name, p.hospital_city,
@@ -147,7 +151,7 @@ router.get('/:id', async (req, res, next) => {
 
 // ── GET /api/requests/:id/match ───────────────────────────────
 // CORE FEATURE — calls fn_find_matching_donors and fn_find_matching_units
-router.get('/:id/match', authenticate, async (req, res, next) => {
+router.get('/:id/match', authenticate, authorize('admin','hospital'), async (req, res, next) => {
   try {
     const { rows: reqRows } = await pool.query(
       `SELECT r.blood_group, r.city, r.units_needed, r.status, r.request_id,
@@ -211,7 +215,7 @@ router.post('/:id/notify/:donor_id', authenticate, authorize('admin','hospital')
       `UPDATE blood_requests SET status = 'matched' WHERE request_id = $1 AND status = 'pending'`,
       [req.params.id],
     );
-    res.json({ success: true, message: 'Donor notified.' });
+    res.json({ success: true, message: 'Match recorded. External donor notification is not configured.' });
   } catch (err) {
     next(err);
   }

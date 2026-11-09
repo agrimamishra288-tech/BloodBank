@@ -1,10 +1,11 @@
 const router = require('express').Router();
 const { pool } = require('../db/pool');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 const LOW_STOCK = Number(process.env.LOW_STOCK_THRESHOLD) || 3;
 
 // ── GET /api/dashboard/stats ──────────────────────────────────
-router.get('/stats', async (req, res, next) => {
+router.get('/stats', authenticate, async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -26,7 +27,7 @@ router.get('/stats', async (req, res, next) => {
 
 // ── GET /api/dashboard/stock ──────────────────────────────────
 // Stock per blood group with per-bank breakdown
-router.get('/stock', async (req, res, next) => {
+router.get('/stock', authenticate, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT blood_group, bank_id, bank_name, bank_city, units_available, earliest_expiry
@@ -48,7 +49,7 @@ router.get('/stock', async (req, res, next) => {
 });
 
 // ── GET /api/dashboard/reports/donation-trends ────────────────
-router.get('/reports/donation-trends', async (req, res, next) => {
+router.get('/reports/donation-trends', authenticate, async (req, res, next) => {
   try {
     const days = Number(req.query.days) || 30;
     const { rows } = await pool.query(
@@ -71,7 +72,7 @@ router.get('/reports/donation-trends', async (req, res, next) => {
 });
 
 // ── GET /api/dashboard/reports/request-summary ────────────────
-router.get('/reports/request-summary', async (req, res, next) => {
+router.get('/reports/request-summary', authenticate, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT status, urgency, COUNT(*)::INT AS count
@@ -86,7 +87,7 @@ router.get('/reports/request-summary', async (req, res, next) => {
 });
 
 // ── GET /api/dashboard/reports/top-donors ─────────────────────
-router.get('/reports/top-donors', async (req, res, next) => {
+router.get('/reports/top-donors', authenticate, authorize('admin','hospital'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT d.donor_id, u.name, d.blood_group, d.city,

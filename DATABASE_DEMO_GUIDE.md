@@ -40,7 +40,7 @@ Open the frontend URL printed by Vite (usually `http://localhost:5173`; if that 
 
 ## Database design
 
-The database has **11 application tables**, plus one schema migration tracking table. The core relationships are:
+The database has **12 application tables**, plus one schema migration tracking table. The core relationships are:
 
 ```mermaid
 erDiagram
@@ -65,6 +65,7 @@ erDiagram
 | `donors` | Donor profile, eligibility and location |
 | `donations` | Donation event ledger (source of truth for donor history) |
 | `blood_banks` | Blood collection/storage centers |
+| `public_blood_bank_directory` | Sourced public listing snapshot for Indian blood banks; not connected to operational stock |
 | `inventory` | Individual blood bags, expiry and availability status |
 | `patients` | Patient details needed for requests |
 | `blood_requests` | Requested group, units, urgency and fulfillment progress |
@@ -74,6 +75,10 @@ erDiagram
 | `audit_log` | Before/after snapshots for inventory and request changes |
 
 This design separates repeating data into related tables. Primary keys identify rows; foreign keys keep relationships valid; `request_donor_matches` models the many-to-many relationship between requests and donors. Checks restrict roles, age, blood groups, statuses, donation volume and request quantities. Unique rules prevent duplicate email identities, donor profiles, bank identities, request/donor matches, and duplicate inventory links to one donation.
+
+### Public facility data included
+
+The database now includes **2,823 public blood-bank directory listings** in `public_blood_bank_directory`. The snapshot is from the National Health Portal / NIHFW / Ministry of Health and Family Welfare directory published via data.gov.in, repackaged by IndiaDigital under CC BY 4.0 plus the Government Open Data License–India. The snapshot package version is 3 November 2026, but its publisher says the underlying government directory was last updated on 12 July 2022. It is a facility directory, not patient data and not live stock. Verify contact details before travel; use the official [e-RaktKosh stock search](https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt) for current availability. Full attribution and caveats are in [`backend/src/db/data/README.md`](backend/src/db/data/README.md).
 
 ## DBMS features to point out
 
@@ -101,6 +106,9 @@ From the `backend` folder:
 
 ```powershell
 npm run db:status
+
+# Re-import or refresh the checked-in public directory snapshot
+npm run db:import-public-directory
 ```
 
 This prints the connected database/server, PostgreSQL data directory, table row counts, schema object counts, and integrity checks without printing user records or credentials.
@@ -125,15 +133,22 @@ LIMIT 12;
 -- Inspect the latest database audit events
 SELECT table_name, operation, record_id, changed_by, changed_at
 FROM audit_log ORDER BY changed_at DESC LIMIT 10;
+
+-- Search the imported public facility directory (these rows have no live stock)
+SELECT name, city, district, state, pincode, contact_phone, service_hours
+FROM public_blood_bank_directory
+WHERE state ILIKE '%Delhi%' OR city ILIKE '%Delhi%'
+ORDER BY city, name
+LIMIT 20;
 ```
 
 ## Current local database snapshot
 
-The database was checked on **5 November 2026**. It contained 5 banks, 26 users, 20 donor profiles, 63 donation events, 35 inventory units, 10 patients, and 10 blood requests. The integrity report found no duplicate emails, duplicate donor profiles, invalid request totals, expired units marked available, or donor-history mismatches. Counts change as the app is used; run `npm run db:status` for the latest values.
+The database was checked on **10 November 2026**. It contained 5 operational project banks and 2,823 public directory entries, along with 26 users, 20 donor profiles, 63 donation events, 35 inventory units, 11 patients, and 11 blood requests. After correcting four expired sample inventory statuses, the integrity report found no duplicate emails, duplicate donor profiles, invalid request totals, expired units marked available, or donor-history mismatches. Counts change as the app is used; run `npm run db:status` for the latest values.
 
 ## Short teacher explanation
 
-> “The application uses PostgreSQL as its relational DBMS. The React frontend sends requests to an Express API, and the API reads or changes records in the `bloodbank` database. The schema uses primary and foreign keys, lookup tables, constraints, indexes, views, stored routines, triggers, transactions and an audit log. Donation events are the source of truth for donor history, while inventory rows represent individual blood units. I can show the live data and reports in pgAdmin, and `npm run db:status` gives a privacy-safe integrity summary.”
+> “The application uses PostgreSQL as its relational DBMS. The React frontend sends requests to an Express API, and the API reads or changes records in the `bloodbank` database. The schema uses primary and foreign keys, lookup tables, constraints, indexes, views, stored routines, triggers, transactions and an audit log. Donation events are the source of truth for donor history, while inventory rows represent individual blood units. We also imported a public national blood-bank directory snapshot into a separate table. It contains facility listings, not patient records or current stock. I can show the live project data and reports in pgAdmin, and `npm run db:status` gives a privacy-safe integrity summary.”
 
 ## Safe setup commands
 

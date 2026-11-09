@@ -41,13 +41,14 @@ backend/
 
 ## Database Schema
 
-### Tables (11)
+### Application Tables (12)
 
 | Table | Description |
 |---|---|
 | `blood_groups` | Lookup: 8 valid blood group codes |
 | `blood_compatibility` | Donor → Recipient compatibility map (27 rows) |
 | `blood_banks` | Registered blood bank centers |
+| `public_blood_bank_directory` | Public national facility directory snapshot; separate from project inventory |
 | `users` | Auth table — donors, hospital staff, admins |
 | `donors` | Donor profiles linked to users |
 | `donations` | Each donation event |
@@ -134,6 +135,9 @@ NODE_ENV=development
 # Run schema + seed data together:
 npm run init-db
 
+# Import the public blood-bank facility snapshot into its own table:
+npm run db:import-public-directory
+
 # Or schema + migrations only (no seed):
 npm run init-db:schema
 
@@ -142,9 +146,14 @@ npm run init-db:seed
 
 # Print database location, row counts, schema objects, and integrity checks:
 npm run db:status
+
+# Import/refresh the checked-in public blood-bank directory snapshot:
+npm run db:import-public-directory
 ```
 
 For the ER diagram, pgAdmin walkthrough, table relationships, sample queries, and a teacher-ready explanation, see [`../DATABASE_DEMO_GUIDE.md`](../DATABASE_DEMO_GUIDE.md). Seed setup never truncates existing application data.
+
+The public directory snapshot and its source attribution/caveat are documented in [`src/db/data/README.md`](src/db/data/README.md). Its underlying official source was last updated in 2022; it does not represent live stock or patient data.
 
 ### 5. Start the Server
 
