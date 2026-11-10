@@ -12,15 +12,16 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (identifier, password, method = 'email') => {
     const credentials = method === 'phone' ? { phone: identifier, password } : { email: identifier, password }
     const { data } = await api.post('/auth/login', credentials)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    setToken(data.token)
-    setUser(data.user)
-    return data.user
+    return data
   }, [])
 
   const loginWithGoogle = useCallback(async (credential) => {
     const { data } = await api.post('/auth/google', { credential })
+    return data
+  }, [])
+
+  const completeMfa = useCallback(async (challengeToken, code) => {
+    const { data } = await api.post('/auth/mfa/verify', { challengeToken, code })
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     setToken(data.token)
@@ -30,11 +31,7 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (payload) => {
     const { data } = await api.post('/auth/register', payload)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    setToken(data.token)
-    setUser(data.user)
-    return data.user
+    return data
   }, [])
 
   const logout = useCallback(() => {
@@ -45,7 +42,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, loginWithGoogle, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, loginWithGoogle, completeMfa, register, logout }}>
       {children}
     </AuthContext.Provider>
   )

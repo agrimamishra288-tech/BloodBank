@@ -26,8 +26,8 @@ export default function Register() {
     setLoading(true)
     try {
       const payload = { ...form, age: form.age ? Number(form.age) : undefined }
-      await register(payload)
-      navigate('/')
+      const authChallenge = await register(payload)
+      navigate('/login', { state: { authChallenge } })
     } catch (err) {
       setError(err)
     } finally {

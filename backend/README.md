@@ -392,8 +392,9 @@ Import this collection order for end-to-end testing:
 
 ## Sign-in options
 
-- Email and password use the existing JWT login flow.
-- Mobile number and password use the phone number stored on the user account. Phone numbers should include their country code where applicable.
+- Email and password, or mobile number and password, are the first sign-in step. A verified mobile number is not required for password login; the number must match the user's stored phone number.
+- Every successful password or Google sign-in now requires a six-digit authenticator-app code (TOTP). On first sign-in, Hemora prompts the user to enroll an authenticator app; the setup secret is encrypted in PostgreSQL using a key derived from `JWT_SECRET`.
+- This is authenticator-based MFA. It does not send email or SMS codes; those delivery channels need a configured email/SMS provider.
 - Google sign-in verifies the Google Identity Services ID token on the server and only signs into an existing Hemora account with the same verified email. It does not create donor or hospital profiles automatically.
 
 ### Configure Google sign-in
@@ -406,3 +407,7 @@ Google sign-in stays unavailable until a Google OAuth **Web application** client
 4. Restart both development servers so the environment variables are loaded.
 
 The client ID is public configuration. Keep `JWT_SECRET`, database credentials, and any future OAuth client secrets in the backend environment only; never put them in the frontend `.env` file.
+
+### Authenticator MFA setup
+
+The additive migration `003_authenticator_mfa.sql` adds `mfa_enabled` and `mfa_secret` to `users`. Apply it with `npm run init-db:schema`; existing user rows are preserved. On the first login after migration (including a new registration), follow the setup key shown on screen in an authenticator app, then enter the current six-digit code. Future sign-ins prompt for the code. If `JWT_SECRET` is changed, enrolled authenticator secrets can no longer be decrypted and users will need an administrator-assisted reset.

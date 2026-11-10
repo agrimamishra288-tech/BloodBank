@@ -7,7 +7,10 @@ const { pool }         = require('../db/pool');
 const { authenticate } = require('../middleware/auth.middleware');
 const { createError }  = require('../middleware/error.middleware');
 const { BLOOD_GROUPS } = require('../middleware/validate.middleware');
+const crypto = require('node:crypto');
 const googleClient = new OAuth2Client();
+const usedMfaChallenges = new Set();
+const mfaAttempts = new Map();
 
 // ── Joi schemas ───────────────────────────────────────────────
 const registerSchema = Joi.object({
@@ -36,6 +39,77 @@ const loginSchema = Joi.object({
 }).xor('email', 'phone');
 
 const googleSchema = Joi.object({ credential: Joi.string().required() });
+const mfaSchema = Joi.object({ challengeToken: Joi.string().required(), code: Joi.string().pattern(/^\d{6}$/).required() });
+
+const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function encodeBase32(buffer) {
+  let bits = 0; let value = 0; let output = '';
+  for (const byte of buffer) {
+    value = (value << 8) | byte; bits += 8;
+    while (bits >= 5) { output += BASE32[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits) output += BASE32[(value << (5 - bits)) & 31];
+  return output;
+}
+function decodeBase32(text) {
+  let bits = 0; let value = 0; const bytes = [];
+  for (const char of text.toUpperCase().replace(/=+$/g, '')) {
+    const index = BASE32.indexOf(char);
+    if (index < 0) throw new Error('Invalid authenticator secret');
+    value = (value << 5) | index; bits += 5;
+    if (bits >= 8) { bytes.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return Buffer.from(bytes);
+}
+function totp(secret, counter) {
+  const message = Buffer.alloc(8);
+  message.writeBigUInt64BE(BigInt(counter));
+  const digest = crypto.createHmac('sha1', decodeBase32(secret)).update(message).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const value = (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return String(value).padStart(6, '0');
+}
+function verifyTotp(secret, code) {
+  const now = Math.floor(Date.now() / 30_000);
+  return [-1, 0, 1].some((window) => {
+    const expected = Buffer.from(totp(secret, now + window));
+    const actual = Buffer.from(code);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  });
+}
+function encryptSecret(secret) {
+  const key = crypto.createHash('sha256').update(process.env.JWT_SECRET).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+  return [iv, cipher.getAuthTag(), encrypted].map((part) => part.toString('base64url')).join('.');
+}
+function decryptSecret(value) {
+  const [iv, tag, encrypted] = value.split('.').map((part) => Buffer.from(part, 'base64url'));
+  const key = crypto.createHash('sha256').update(process.env.JWT_SECRET).digest();
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+}
+function beginMfa(user) {
+  const setupRequired = !user.mfa_enabled || !user.mfa_secret;
+  const setupSecret = setupRequired ? encodeBase32(crypto.randomBytes(20)) : undefined;
+  const challengeToken = jwt.sign(
+    { id: user.user_id, purpose: 'mfa', setupRequired, ...(setupSecret ? { setupSecret } : {}) },
+    process.env.JWT_SECRET,
+    { expiresIn: '10m', jwtid: crypto.randomUUID() },
+  );
+  return {
+    success: true,
+    mfaRequired: true,
+    setupRequired,
+    challengeToken,
+    ...(setupSecret ? {
+      setupSecret,
+      otpauthUri: `otpauth://totp/${encodeURIComponent(`Hemora:${user.email}`)}?secret=${setupSecret}&issuer=Hemora&algorithm=SHA1&digits=6&period=30`,
+    } : {}),
+  };
+}
 
 function signToken(user) {
   return jwt.sign(
@@ -87,8 +161,7 @@ router.post('/register', async (req, res, next) => {
 
     await client.query('COMMIT');
 
-    const token = signToken(user);
-    res.status(201).json({ success: true, token, user: { ...user, donor } });
+    res.status(201).json(beginMfa({ ...user, mfa_enabled: false, mfa_secret: null }));
   } catch (err) {
     await client.query('ROLLBACK');
     next(err);
@@ -111,7 +184,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const result = value.phone
       ? await pool.query(
-          `SELECT user_id, name, email, password_hash, role, phone, is_active
+          `SELECT user_id, name, email, password_hash, role, phone, is_active, mfa_enabled, mfa_secret
            FROM users
            WHERE regexp_replace(phone, '[^0-9]', '', 'g') = $1
            ORDER BY user_id
@@ -119,7 +192,7 @@ router.post('/login', async (req, res, next) => {
           [value.phone.replace(/\D/g, '')],
         )
       : await pool.query(
-          `SELECT user_id, name, email, password_hash, role, phone, is_active
+          `SELECT user_id, name, email, password_hash, role, phone, is_active, mfa_enabled, mfa_secret
            FROM users WHERE email = $1`,
           [value.email],
         );
@@ -132,8 +205,7 @@ router.post('/login', async (req, res, next) => {
     if (!match) throw createError(401, 'Invalid email or password.');
 
     delete user.password_hash;
-    const token = signToken(user);
-    res.json({ success: true, token, user });
+    res.json(beginMfa(user));
   } catch (err) {
     next(err);
   }
@@ -149,7 +221,7 @@ router.post('/google', async (req, res, next) => {
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  if (!clientId) {
+  if (!clientId || clientId.includes('your_google_web_client_id')) {
     return res.status(503).json({ success: false, message: 'Google sign-in is not configured for this app yet.' });
   }
 
@@ -166,7 +238,7 @@ router.post('/google', async (req, res, next) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT user_id, name, email, role, phone, is_active
+      `SELECT user_id, name, email, role, phone, is_active, mfa_enabled, mfa_secret
        FROM users WHERE email = $1`,
       [claims.email.toLowerCase()],
     );
@@ -174,6 +246,57 @@ router.post('/google', async (req, res, next) => {
     if (!user) throw createError(401, 'No Hemora account uses this Google email yet. Create an account first.');
     if (!user.is_active) throw createError(401, 'Account is deactivated. Contact admin.');
 
+    res.json(beginMfa(user));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/auth/mfa/verify ─────────────────────────────────
+// First successful password/Google sign-in enrolls an authenticator app.
+router.post('/mfa/verify', async (req, res, next) => {
+  const { error, value } = mfaSchema.validate(req.body);
+  if (error) return res.status(400).json({ success: false, message: 'Enter the six-digit authenticator code.' });
+
+  let challenge;
+  try {
+    challenge = jwt.verify(value.challengeToken, process.env.JWT_SECRET);
+    if (challenge.purpose !== 'mfa' || !challenge.id) throw new Error('Invalid MFA challenge');
+  } catch {
+    return res.status(401).json({ success: false, message: 'This verification has expired. Sign in again.' });
+  }
+  if (usedMfaChallenges.has(challenge.jti)) {
+    return res.status(401).json({ success: false, message: 'This verification was already used. Sign in again.' });
+  }
+  if ((mfaAttempts.get(challenge.jti) || 0) >= 5) {
+    return res.status(429).json({ success: false, message: 'Too many incorrect codes. Sign in again to retry.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT user_id, name, email, role, phone, is_active, mfa_enabled, mfa_secret FROM users WHERE user_id = $1',
+      [challenge.id],
+    );
+    const user = rows[0];
+    if (!user || !user.is_active) return res.status(401).json({ success: false, message: 'This account is unavailable. Sign in again.' });
+
+    if (challenge.setupRequired) {
+      if (!challenge.setupSecret || !verifyTotp(challenge.setupSecret, value.code)) {
+        mfaAttempts.set(challenge.jti, (mfaAttempts.get(challenge.jti) || 0) + 1);
+        return res.status(401).json({ success: false, message: 'That code did not match. Check your authenticator app and try again.' });
+      }
+      await pool.query('UPDATE users SET mfa_secret = $1, mfa_enabled = TRUE WHERE user_id = $2', [encryptSecret(challenge.setupSecret), user.user_id]);
+    } else {
+      if (!user.mfa_enabled || !user.mfa_secret || !verifyTotp(decryptSecret(user.mfa_secret), value.code)) {
+        mfaAttempts.set(challenge.jti, (mfaAttempts.get(challenge.jti) || 0) + 1);
+        return res.status(401).json({ success: false, message: 'That code did not match. Check your authenticator app and try again.' });
+      }
+    }
+
+    usedMfaChallenges.add(challenge.jti);
+    mfaAttempts.delete(challenge.jti);
+    delete user.mfa_secret;
+    delete user.mfa_enabled;
     const token = signToken(user);
     res.json({ success: true, token, user });
   } catch (err) {

@@ -49,7 +49,7 @@ export default function GoogleSignIn({ onCredential }) {
         <button type="button" className="google-placeholder" disabled>
           <span className="google-mark" aria-hidden="true">G</span>Continue with Google
         </button>
-        <p>Google sign-in needs an OAuth client ID to be configured.</p>
+        <p>Google sign-in is waiting for an OAuth web client ID. Configure it for your local site to enable this option.</p>
       </div>
     )
   }

@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS users (
     role            TEXT NOT NULL DEFAULT 'donor'
                         CHECK (role IN ('donor', 'hospital', 'admin')),
     phone           TEXT,
+    mfa_enabled     BOOLEAN NOT NULL DEFAULT FALSE,
+    mfa_secret      TEXT,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
