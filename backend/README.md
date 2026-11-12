@@ -149,11 +149,16 @@ npm run db:status
 
 # Import/refresh the checked-in public blood-bank directory snapshot:
 npm run db:import-public-directory
+
+# Check the publisher and import its newest licensed snapshot if available:
+npm run db:refresh-public-directory
 ```
 
 For the ER diagram, pgAdmin walkthrough, table relationships, sample queries, and a teacher-ready explanation, see [`../DATABASE_DEMO_GUIDE.md`](../DATABASE_DEMO_GUIDE.md). Seed setup never truncates existing application data.
 
-The public directory snapshot and its source attribution/caveat are documented in [`src/db/data/README.md`](src/db/data/README.md). Its underlying official source was last updated in 2022; it does not represent live stock or patient data.
+The public directory refresh checks the publisher at startup and every 24 hours. Its underlying official source was last updated in 2022; the refresh does not represent live stock or patient data. Source attribution and caveat are documented in [`src/db/data/README.md`](src/db/data/README.md).
+
+For a step-by-step guide to requesting authorized live e-RaktKosh access or importing hospital-approved de-identified sample data, see [`../REAL_DATA_INTEGRATION_GUIDE.md`](../REAL_DATA_INTEGRATION_GUIDE.md).
 
 ### 5. Start the Server
 

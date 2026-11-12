@@ -78,7 +78,7 @@ This design separates repeating data into related tables. Primary keys identify 
 
 ### Public facility data included
 
-The database now includes **2,823 public blood-bank directory listings** in `public_blood_bank_directory`. The snapshot is from the National Health Portal / NIHFW / Ministry of Health and Family Welfare directory published via data.gov.in, repackaged by IndiaDigital under CC BY 4.0 plus the Government Open Data License–India. The snapshot package version is 3 November 2026, but its publisher says the underlying government directory was last updated on 12 July 2022. It is a facility directory, not patient data and not live stock. Verify contact details before travel; use the official [e-RaktKosh stock search](https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt) for current availability. Full attribution and caveats are in [`backend/src/db/data/README.md`](backend/src/db/data/README.md).
+The database now includes **2,823 public blood-bank directory listings** in `public_blood_bank_directory`. The snapshot is from the National Health Portal / NIHFW / Ministry of Health and Family Welfare directory published via data.gov.in, repackaged by IndiaDigital under CC BY 4.0 plus the Government Open Data License–India. The backend checks the mirror's version index at startup and every 24 hours, and imports only when a newer licensed snapshot appears. The current package is dated 3 November 2026, but its publisher says the underlying government directory was last updated on 12 July 2022. It is a facility directory, not patient data and not live stock. Verify contact details before travel; use the official [e-RaktKosh stock search](https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt) for current availability. Full attribution and caveats are in [`backend/src/db/data/README.md`](backend/src/db/data/README.md).
 
 ## DBMS features to point out
 
@@ -107,8 +107,8 @@ From the `backend` folder:
 ```powershell
 npm run db:status
 
-# Re-import or refresh the checked-in public directory snapshot
-npm run db:import-public-directory
+# Check the licensed publisher and sync if a newer snapshot exists
+npm run db:refresh-public-directory
 ```
 
 This prints the connected database/server, PostgreSQL data directory, table row counts, schema object counts, and integrity checks without printing user records or credentials.

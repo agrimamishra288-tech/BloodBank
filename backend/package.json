@@ -10,7 +10,8 @@
     "init-db:schema": "node src/db/init.js --schema-only",
     "init-db:seed": "node src/db/init.js --seed-only",
     "db:status": "node src/db/status.js",
-    "db:import-public-directory": "node src/db/import-public-directory.js"
+    "db:import-public-directory": "node src/db/import-public-directory.js",
+    "db:refresh-public-directory": "node src/db/import-public-directory.js --refresh"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

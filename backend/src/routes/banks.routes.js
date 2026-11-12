@@ -32,6 +32,12 @@ router.get('/directory', async (req, res, next) => {
       `SELECT COUNT(*)::INT AS total FROM public_blood_bank_directory ${where}`,
       params,
     );
+    const freshness = await pool.query(`
+      SELECT MAX(snapshot_version)::TEXT AS snapshot_version,
+             MAX(source_updated_at)::TEXT AS source_updated_at,
+             MAX(imported_at)::TEXT AS imported_at
+      FROM public_blood_bank_directory
+    `);
     params.push(limit, offset);
     const { rows } = await pool.query(
       `SELECT external_id, name, address, city, district, state, pincode,
@@ -52,8 +58,7 @@ router.get('/directory', async (req, res, next) => {
       source: {
         name: 'Blood Bank Directory, National Health Portal / NIHFW / MoHFW via data.gov.in',
         url: 'https://www.data.gov.in/resource/blood-bank-directory-updated-till-last-month',
-        snapshot_version: '2026-11-03',
-        source_updated_at: '2022-07-12',
+        ...freshness.rows[0],
         note: 'Reference listings only. Contact the centre to confirm details; live stock is not included.',
       },
     });

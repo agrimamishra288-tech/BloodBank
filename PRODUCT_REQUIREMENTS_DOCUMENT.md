@@ -138,7 +138,7 @@ Priority meanings: **P0** essential for core demonstration; **P1** important sup
 | FR-14 | Users can switch the interface between light and dark themes. | P1 | Implemented |
 | FR-15 | Administrators can browse blood banks and manage supported bank records. | P1 | Implemented through role-protected API and bank views |
 | FR-16 | Operators can inspect database connection details, row counts, schema object counts, and integrity summaries without exposing user records. | P1 | Implemented by `npm run db:status` |
-| FR-17 | Visitors can search and page through the public facility directory while seeing its source and freshness caveat. | P1 | Implemented from a sourced public snapshot |
+| FR-17 | Visitors can search and page through the public facility directory while seeing its source and freshness caveat. | P1 | Implemented with daily publisher-version checks; source records may remain old until publisher updates them |
 | FR-18 | Donor and patient contact details are limited to authenticated roles that need them; donor users see anonymized directory/request details. | P0 | Implemented and smoke-checked |
 
 ## 8. Data and DBMS requirements
