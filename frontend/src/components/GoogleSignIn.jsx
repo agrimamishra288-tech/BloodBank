@@ -1,58 +1,37 @@
-import { useEffect, useRef } from 'react'
+import { useState } from 'react'
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { firebaseAuth, firebaseConfigured } from '../firebase'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+export default function GoogleSignIn({ onCredential, onError }) {
+  const [loading, setLoading] = useState(false)
 
-export default function GoogleSignIn({ onCredential }) {
-  const buttonRef = useRef(null)
-  const callbackRef = useRef(onCredential)
-  callbackRef.current = onCredential
-
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !buttonRef.current) return undefined
-
-    const renderGoogleButton = () => {
-      if (!window.google?.accounts?.id || !buttonRef.current) return
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (response) => callbackRef.current(response.credential),
-      })
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: 'outline',
-        size: 'large',
-        shape: 'rectangular',
-        text: 'continue_with',
-        width: buttonRef.current.clientWidth || 360,
-      })
+  async function handleClick() {
+    setLoading(true)
+    try {
+      const result = await signInWithPopup(firebaseAuth, new GoogleAuthProvider())
+      const idToken = await result.user.getIdToken()
+      await onCredential(idToken)
+    } catch (error) {
+      onError?.(error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    let script = document.querySelector('script[data-hemora-google]')
-    if (window.google?.accounts?.id) {
-      renderGoogleButton()
-    } else if (script) {
-      script.addEventListener('load', renderGoogleButton)
-    } else {
-      script = document.createElement('script')
-      script.src = 'https://accounts.google.com/gsi/client'
-      script.async = true
-      script.defer = true
-      script.dataset.hemoraGoogle = 'true'
-      script.addEventListener('load', renderGoogleButton)
-      document.head.appendChild(script)
-    }
-
-    return () => script?.removeEventListener('load', renderGoogleButton)
-  }, [])
-
-  if (!GOOGLE_CLIENT_ID) {
+  if (!firebaseConfigured) {
     return (
       <div className="google-setup">
         <button type="button" className="google-placeholder" disabled>
           <span className="google-mark" aria-hidden="true">G</span>Continue with Google
         </button>
-        <p>Google sign-in is waiting for an OAuth web client ID. Configure it for your local site to enable this option.</p>
+        <p>Connect a Firebase web app to enable Google sign-in. Setup steps are in the backend README.</p>
       </div>
     )
   }
 
-  return <div className="google-button" ref={buttonRef} aria-label="Continue with Google" />
+  return (
+    <button type="button" className="google-placeholder google-firebase-button" onClick={handleClick} disabled={loading}>
+      <span className="google-mark" aria-hidden="true">G</span>{loading ? 'Connecting to Google…' : 'Continue with Google'}
+    </button>
+  )
 }

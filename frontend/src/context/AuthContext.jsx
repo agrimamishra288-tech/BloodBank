@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const loginWithGoogle = useCallback(async (credential) => {
-    const { data } = await api.post('/auth/google', { credential })
+    const { data } = await api.post('/auth/firebase', { idToken: credential })
     return data
   }, [])
 

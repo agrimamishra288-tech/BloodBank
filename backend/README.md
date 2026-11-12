@@ -400,18 +400,19 @@ Import this collection order for end-to-end testing:
 - Email and password, or mobile number and password, are the first sign-in step. A verified mobile number is not required for password login; the number must match the user's stored phone number.
 - Every successful password or Google sign-in now requires a six-digit authenticator-app code (TOTP). On first sign-in, Hemora prompts the user to enroll an authenticator app; the setup secret is encrypted in PostgreSQL using a key derived from `JWT_SECRET`.
 - This is authenticator-based MFA. It does not send email or SMS codes; those delivery channels need a configured email/SMS provider.
-- Google sign-in verifies the Google Identity Services ID token on the server and only signs into an existing Hemora account with the same verified email. It does not create donor or hospital profiles automatically.
+- Google sign-in uses Firebase Authentication in the browser and Firebase Admin to verify the ID token on the server. It links to an existing Hemora account by verified email; it does not create donor or hospital profiles automatically. Successful sign-in continues to the authenticator-app MFA step.
 
 ### Configure Google sign-in
 
-Google sign-in stays unavailable until a Google OAuth **Web application** client ID is configured.
+Google sign-in stays unavailable until a Firebase project is configured.
 
-1. Create a Web application OAuth client in Google Cloud and add your local frontend origin (for example, `http://localhost:5173` and `http://localhost:5174`) to **Authorized JavaScript origins**.
-2. Copy `frontend/.env.example` to `frontend/.env` and set `VITE_GOOGLE_CLIENT_ID` to that client ID.
-3. Set the same `GOOGLE_CLIENT_ID` in `backend/.env`.
-4. Restart both development servers so the environment variables are loaded.
+1. In [Firebase Console](https://console.firebase.google.com/), create or open a project and add a Web app.
+2. Open **Authentication → Sign-in method** and enable **Google**. In Authentication settings, make sure `localhost` and your deployed site's domain are authorized.
+3. Copy the web app's `apiKey`, `authDomain`, `projectId`, and `appId` into `frontend/.env` using the variable names in `frontend/.env.example`.
+4. In **Project settings → Service accounts**, generate an Admin SDK service-account JSON key. Save it outside the repository. In `backend/.env`, set `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` to the project ID and absolute path of that file (forward slashes work in Windows paths).
+5. Restart the frontend and backend. Google sign-in requires a Hemora account with the same verified email, then prompts for the existing authenticator-app second factor.
 
-The client ID is public configuration. Keep `JWT_SECRET`, database credentials, and any future OAuth client secrets in the backend environment only; never put them in the frontend `.env` file.
+The Firebase web config is client configuration; the API key identifies the Firebase project and does not replace security rules. Never put the Admin SDK JSON key, `JWT_SECRET`, or database credentials in the frontend or commit them to GitHub. The backend verifies Firebase ID tokens with Firebase Admin before issuing a Hemora session.
 
 ### Authenticator MFA setup
 

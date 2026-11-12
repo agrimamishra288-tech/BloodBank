@@ -3,6 +3,8 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const Joi     = require('joi');
 const { OAuth2Client } = require('google-auth-library');
+const { applicationDefault, getApps, initializeApp } = require('firebase-admin/app');
+const { getAuth: getFirebaseAuth } = require('firebase-admin/auth');
 const { pool }         = require('../db/pool');
 const { authenticate } = require('../middleware/auth.middleware');
 const { createError }  = require('../middleware/error.middleware');
@@ -39,6 +41,7 @@ const loginSchema = Joi.object({
 }).xor('email', 'phone');
 
 const googleSchema = Joi.object({ credential: Joi.string().required() });
+const firebaseSchema = Joi.object({ idToken: Joi.string().required() });
 const mfaSchema = Joi.object({ challengeToken: Joi.string().required(), code: Joi.string().pattern(/^\d{6}$/).required() });
 
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -109,6 +112,15 @@ function beginMfa(user) {
       otpauthUri: `otpauth://totp/${encodeURIComponent(`Hemora:${user.email}`)}?secret=${setupSecret}&issuer=Hemora&algorithm=SHA1&digits=6&period=30`,
     } : {}),
   };
+}
+
+function firebaseAuth() {
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+  if (!projectId) throw createError(503, 'Firebase sign-in is not configured on this server yet.');
+  const appName = 'hemora-firebase-auth';
+  const app = getApps().find((entry) => entry.name === appName)
+    || initializeApp({ credential: applicationDefault(), projectId }, appName);
+  return getFirebaseAuth(app);
 }
 
 function signToken(user) {
@@ -246,6 +258,59 @@ router.post('/google', async (req, res, next) => {
     if (!user) throw createError(401, 'No Hemora account uses this Google email yet. Create an account first.');
     if (!user.is_active) throw createError(401, 'Account is deactivated. Contact admin.');
 
+    res.json(beginMfa(user));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/auth/firebase ──────────────────────────────────
+// Firebase verifies the Google popup client-side; this endpoint verifies the
+// Firebase ID token with Admin SDK before linking an existing Hemora account.
+router.post('/firebase', async (req, res, next) => {
+  const { error, value } = firebaseSchema.validate(req.body, { abortEarly: false });
+  if (error) return res.status(400).json({ success: false, message: 'A Firebase ID token is required.' });
+
+  let auth;
+  try {
+    auth = firebaseAuth();
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ success: false, message: err.message });
+    return res.status(503).json({ success: false, message: 'Firebase Admin credentials are missing or invalid on this server.' });
+  }
+
+  let claims;
+  try {
+    claims = await auth.verifyIdToken(value.idToken, true);
+  } catch {
+    return res.status(401).json({ success: false, message: 'Firebase could not verify this sign-in. Check the Firebase project settings and try again.' });
+  }
+  if (claims.firebase?.sign_in_provider !== 'google.com' || !claims.email || claims.email_verified !== true) {
+    return res.status(401).json({ success: false, message: 'Use a verified Google account to continue.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT user_id, name, email, role, phone, is_active, mfa_enabled, mfa_secret, firebase_uid
+       FROM users WHERE firebase_uid = $1 OR email = $2
+       ORDER BY (firebase_uid = $1) DESC
+       LIMIT 2`,
+      [claims.uid, claims.email.toLowerCase()],
+    );
+    const user = rows[0];
+    if (!user || rows.length > 1) throw createError(401, 'No unique Hemora account uses this Google email. Create your Hemora account first.');
+    if (!user.is_active) throw createError(401, 'Account is deactivated. Contact admin.');
+    if (user.firebase_uid && user.firebase_uid !== claims.uid) {
+      throw createError(409, 'This Hemora account is linked to a different Firebase identity. Contact admin.');
+    }
+    if (!user.firebase_uid) {
+      const linked = await pool.query(
+        'UPDATE users SET firebase_uid = $1 WHERE user_id = $2 AND firebase_uid IS NULL RETURNING user_id',
+        [claims.uid, user.user_id],
+      );
+      if (!linked.rowCount) throw createError(409, 'This Hemora account was linked during another sign-in. Please try again.');
+    }
+    delete user.firebase_uid;
     res.json(beginMfa(user));
   } catch (err) {
     next(err);

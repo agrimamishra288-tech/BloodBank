@@ -119,7 +119,7 @@ export default function Login() {
           </form>
 
           <div className="login-divider"><span>or continue with</span></div>
-          <GoogleSignIn onCredential={handleGoogleCredential} />
+          <GoogleSignIn onCredential={handleGoogleCredential} onError={(err) => setError(err?.message || 'Google sign-in failed. Please try again.')} />
           </>}
 
           {!challenge && <p className="mt-6 text-center text-sm text-[#8d7d7d]">New to the network? <Link to="/register" className="font-bold text-[#a33243] hover:underline">Join as a donor ↗</Link></p>}

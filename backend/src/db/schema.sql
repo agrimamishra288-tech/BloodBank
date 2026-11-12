@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS users (
     role            TEXT NOT NULL DEFAULT 'donor'
                         CHECK (role IN ('donor', 'hospital', 'admin')),
     phone           TEXT,
+    firebase_uid    TEXT,
     mfa_enabled     BOOLEAN NOT NULL DEFAULT FALSE,
     mfa_secret      TEXT,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,

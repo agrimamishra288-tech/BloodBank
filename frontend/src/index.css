@@ -96,6 +96,8 @@ table tbody tr { @apply transition-colors; }
 .login-divider::before, .login-divider::after { content: ''; height: 1px; flex: 1; background: #eee6e2; }
 .google-setup { text-align: center; }
 .google-placeholder { display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; border: 1px solid #e8e1dd; border-radius: 12px; background: #fff; padding: 11px; color: #766b68; font-size: 12px; font-weight: 700; opacity: .74; }
+.google-firebase-button { opacity: 1; cursor: pointer; transition: .18s ease; }
+.google-firebase-button:hover { background: #faf6f3; border-color: #d8c5c4; }
 .google-mark { font-family: Arial, sans-serif; font-size: 16px; font-weight: 800; color: #4285f4; }
 .google-setup p { margin-top: 7px; color: #a39491; font-size: 9px; }
 .google-button { min-height: 42px; overflow: hidden; border-radius: 12px; }
