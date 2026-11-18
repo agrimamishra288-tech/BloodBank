@@ -1,59 +1,46 @@
-// Blood group → Tailwind color classes
-const BG_COLORS = {
-  'O-':  'bg-blue-100 text-blue-800 ring-blue-200',
-  'O+':  'bg-blue-50  text-blue-700 ring-blue-100',
-  'A-':  'bg-green-100 text-green-800 ring-green-200',
-  'A+':  'bg-green-50  text-green-700 ring-green-100',
-  'B-':  'bg-purple-100 text-purple-800 ring-purple-200',
-  'B+':  'bg-purple-50  text-purple-700 ring-purple-100',
-  'AB-': 'bg-orange-100 text-orange-800 ring-orange-200',
-  'AB+': 'bg-orange-50  text-orange-700 ring-orange-100',
+const BG = {
+  'O+': 'badge-Opos', 'O-': 'badge-Oneg',
+  'A+': 'badge-Apos', 'A-': 'badge-Aneg',
+  'B+': 'badge-Bpos', 'B-': 'badge-Bneg',
+  'AB+':'badge-ABpos','AB-':'badge-ABneg',
 }
 
 export default function BloodGroupBadge({ group, size = 'sm' }) {
-  const cls = BG_COLORS[group] || 'bg-gray-100 text-gray-700 ring-gray-200'
-  const sz  = size === 'lg' ? 'text-sm px-3 py-1 font-bold' : 'text-xs px-2 py-0.5 font-semibold'
-  return (
-    <span className={`inline-flex items-center rounded-full ring-1 ${cls} ${sz}`}>
-      {group}
-    </span>
-  )
+  const cls = BG[group] || 'bg-dark-600 text-muted border border-dark-400'
+  const sz  = size === 'lg' ? 'text-sm px-3 py-1' : ''
+  return <span className={`badge ${cls} ${sz} font-mono`}>{group || '—'}</span>
 }
 
 export function UrgencyBadge({ urgency }) {
   const map = {
-    critical: 'bg-red-100 text-red-800',
-    urgent:   'bg-amber-100 text-amber-800',
-    normal:   'bg-green-100 text-green-800',
+    critical: { cls: 'bg-blood-900/60 text-blood-300 border border-blood-700/40', label: '🔴 Critical', pulse: true },
+    urgent:   { cls: 'bg-gold-600/20   text-gold-400  border border-gold-600/30',  label: '🟠 Urgent',   pulse: false },
+    normal:   { cls: 'bg-dark-600      text-muted     border border-dark-400',      label: '⚪ Normal',   pulse: false },
   }
+  const { cls, label, pulse } = map[urgency] || map.normal
   return (
-    <span className={`badge ${map[urgency] || 'bg-gray-100 text-gray-700'} capitalize`}>
-      {urgency === 'critical' && '🚨 '}{urgency}
+    <span className={`badge ${cls} ${pulse ? 'animate-pulse-slow' : ''}`}>
+      {label}
     </span>
   )
 }
 
 export function StatusBadge({ status }) {
-  const map = {
-    pending:              'bg-yellow-100 text-yellow-800',
-    matched:              'bg-blue-100 text-blue-800',
-    partially_fulfilled:  'bg-indigo-100 text-indigo-800',
-    fulfilled:            'bg-green-100 text-green-800',
-    cancelled:            'bg-gray-100 text-gray-500',
-    available:            'bg-green-100 text-green-800',
-    issued:               'bg-blue-100 text-blue-800',
-    expired:              'bg-red-100 text-red-700',
-    discarded:            'bg-gray-100 text-gray-500',
-  }
-  return (
-    <span className={`badge ${map[status] || 'bg-gray-100 text-gray-700'} capitalize`}>
-      {status?.replace(/_/g, ' ')}
-    </span>
-  )
+  return <span className={`badge badge-${status}`}>{status?.replace(/_/g, ' ')}</span>
 }
 
 export function EligibleBadge({ eligible }) {
   return eligible
-    ? <span className="badge bg-green-100 text-green-700">✓ Eligible</span>
-    : <span className="badge bg-red-100 text-red-600">✗ Not eligible</span>
+    ? <span className="badge bg-emerald-900/40 text-emerald-400 border border-emerald-700/30">✓ Eligible</span>
+    : <span className="badge bg-red-900/40 text-red-400 border border-red-700/30">✗ Not eligible</span>
+}
+
+export function ScoreBadge({ score }) {
+  const color = score >= 100 ? 'text-emerald-400' : score >= 80 ? 'text-gold-400' : 'text-blue-400'
+  const label = score >= 100 ? 'Exact Match' : score >= 80 ? 'Universal Donor' : 'Compatible'
+  return (
+    <span className={`badge bg-dark-600 border border-dark-400 ${color} font-mono`}>
+      {score}% · {label}
+    </span>
+  )
 }

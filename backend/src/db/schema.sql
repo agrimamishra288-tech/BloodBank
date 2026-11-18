@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS blood_banks (
     pincode         TEXT,
     contact_phone   TEXT NOT NULL,
     contact_email   TEXT,
+    latitude        NUMERIC(9,6),
+    longitude       NUMERIC(9,6),
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -248,6 +250,8 @@ CREATE INDEX IF NOT EXISTS idx_requests_group_city    ON blood_requests(blood_gr
 CREATE INDEX IF NOT EXISTS idx_matches_request        ON request_donor_matches(request_id);
 CREATE INDEX IF NOT EXISTS idx_matches_donor          ON request_donor_matches(donor_id);
 CREATE INDEX IF NOT EXISTS idx_audit_table_record     ON audit_log(table_name, record_id);
+-- Spatial index for geo-proximity queries on the operational blood_banks table
+CREATE INDEX IF NOT EXISTS idx_blood_banks_lat_lng    ON blood_banks(latitude, longitude);
 
 -- ============================================================
 -- VIEWS
@@ -453,7 +457,26 @@ FOR EACH ROW EXECUTE FUNCTION fn_audit_requests();
 -- STORED FUNCTIONS / PROCEDURES
 -- ============================================================
 
--- fn_find_matching_donors: returns compatible + eligible donors in a city
+-- fn_haversine_km: great-circle distance between two GPS points (kilometres)
+-- Uses the Haversine formula — accurate to within ~0.5% for terrestrial distances.
+CREATE OR REPLACE FUNCTION fn_haversine_km(
+    lat1 NUMERIC,  lon1 NUMERIC,
+    lat2 NUMERIC,  lon2 NUMERIC
+)
+RETURNS NUMERIC LANGUAGE sql IMMUTABLE STRICT AS $$
+    SELECT
+        2 * 6371 *
+        ASIN(
+            SQRT(
+                POWER(SIN(RADIANS(lat2 - lat1) / 2), 2)
+                + COS(RADIANS(lat1)) * COS(RADIANS(lat2))
+                  * POWER(SIN(RADIANS(lon2 - lon1) / 2), 2)
+            )
+        )
+$$;
+
+-- fn_find_matching_donors: returns compatible + eligible donors in a city,
+-- now also returns a compatibility_score (100=exact, 80=universal O-, 60=compatible)
 CREATE OR REPLACE FUNCTION fn_find_matching_donors(
     p_blood_group TEXT,
     p_city        TEXT
@@ -466,7 +489,8 @@ RETURNS TABLE (
     city               TEXT,
     last_donation_date DATE,
     total_donations    INT,
-    is_exact_match     BOOLEAN
+    is_exact_match     BOOLEAN,
+    compatibility_score INT
 ) LANGUAGE sql STABLE AS $$
     SELECT
         d.donor_id,
@@ -476,7 +500,12 @@ RETURNS TABLE (
         d.city,
         d.last_donation_date,
         d.total_donations,
-        (d.blood_group = p_blood_group) AS is_exact_match
+        (d.blood_group = p_blood_group) AS is_exact_match,
+        CASE
+            WHEN d.blood_group = p_blood_group THEN 100   -- exact ABO+Rh match
+            WHEN d.blood_group = 'O-'          THEN 80    -- universal donor
+            ELSE                                    60    -- ABO/Rh compatible
+        END AS compatibility_score
     FROM donors d
     JOIN users u ON u.user_id = d.user_id
     JOIN blood_compatibility c
@@ -490,8 +519,9 @@ RETURNS TABLE (
           OR d.last_donation_date <= CURRENT_DATE - INTERVAL '90 days'
       )
     ORDER BY
-        (d.blood_group = p_blood_group) DESC,   -- exact match first
-        d.last_donation_date ASC NULLS FIRST;    -- never donated first
+        compatibility_score DESC,                    -- highest score first
+        (d.blood_group = p_blood_group) DESC,        -- exact match first
+        d.last_donation_date ASC NULLS FIRST;        -- never donated first
 $$;
 
 -- fn_find_matching_units: available compatible units, nearest expiry first

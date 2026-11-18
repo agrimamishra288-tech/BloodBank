@@ -1,55 +1,71 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
-import { ThemeProvider } from './context/ThemeContext'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import { useAuth } from './context/AuthContext'
+import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
-import Navbar      from './components/Navbar'
-import Login       from './pages/Login'
-import Register    from './pages/Register'
-import Dashboard   from './pages/Dashboard'
-import Donors      from './pages/Donors'
-import Inventory   from './pages/Inventory'
-import Requests    from './pages/Requests'
-import Banks       from './pages/Banks'
-import Donations   from './pages/Donations'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
+import Donors from './pages/Donors'
+import Inventory from './pages/Inventory'
+import Requests from './pages/Requests'
+import Donations from './pages/Donations'
+import Banks from './pages/Banks'
 
-export default function App() {
+function Layout({ children }) {
   return (
-    <ThemeProvider>
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public */}
-          <Route path="/login"    element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          {/* Protected — all share the Navbar layout */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route index                element={<Dashboard />} />
-              <Route path="/donors"       element={<Donors />} />
-              <Route path="/inventory"    element={<Inventory />} />
-              <Route path="/requests"     element={<Requests />} />
-              <Route path="/banks"        element={<Banks />} />
-              <Route path="/donations"    element={<Donations />} />
-            </Route>
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-    </ThemeProvider>
+    <div className="flex min-h-screen bg-dark-900">
+      <Navbar />
+      <main className="flex-1 md:ml-64 p-6 overflow-auto">
+        {children}
+      </main>
+    </div>
   )
 }
 
-import { Outlet } from 'react-router-dom'
-function Layout() {
+export default function App() {
+  const { user } = useAuth()
+  const location = useLocation()
+
   return (
-    <div className="app-shell min-h-screen bg-[#f8f6f3]">
-      <Navbar />
-      <main className="mx-auto max-w-[1440px] px-4 py-8 sm:px-7 sm:py-9">
-        <Outlet />
-      </main>
-    </div>
+    <>
+      <Toaster
+        position="top-right"
+        gutter={12}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#0F1629',
+            color: '#fff',
+            border: '1px solid #1E2744',
+            borderRadius: '0.75rem',
+            fontSize: '0.875rem',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+          },
+          success: {
+            iconTheme: { primary: '#2ECC71', secondary: '#fff' },
+            style: { borderLeft: '3px solid #2ECC71' },
+          },
+          error: {
+            iconTheme: { primary: '#E63946', secondary: '#fff' },
+            style: { borderLeft: '3px solid #E63946' },
+          },
+        }}
+      />
+
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login"    element={user ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/"          element={<Layout><Dashboard /></Layout>} />
+          <Route path="/donors"    element={<Layout><Donors /></Layout>} />
+          <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
+          <Route path="/requests"  element={<Layout><Requests /></Layout>} />
+          <Route path="/donations" element={<Layout><Donations /></Layout>} />
+          <Route path="/banks"     element={<Layout><Banks /></Layout>} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }

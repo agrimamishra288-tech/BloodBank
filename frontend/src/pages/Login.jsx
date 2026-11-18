@@ -1,131 +1,67 @@
-import { useCallback, useState } from 'react'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Eye, EyeOff, Mail, Phone, ShieldCheck } from 'lucide-react'
+import toast from 'react-hot-toast'
+import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import ErrorBanner from '../components/ErrorBanner'
-import AuthShowcase from '../components/AuthShowcase'
+import AuthFrame from '../components/AuthFrame'
+import MfaVerification from '../components/MfaVerification'
 import GoogleSignIn from '../components/GoogleSignIn'
-import ThemeToggle from '../components/ThemeToggle'
 
 export default function Login() {
-  const { login, loginWithGoogle, completeMfa } = useAuth()
+  const { login, verifyMfa, completeSignIn } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [method, setMethod] = useState('email')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [challenge, setChallenge] = useState(() => location.state?.authChallenge || null)
-  const [code, setCode] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [challenge, setChallenge] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError(null)
-    setLoading(true)
+    setBusy(true)
     try {
-      const result = await login(identifier, password, method)
-      setChallenge(result)
-      setCode('')
+      const result = await login(method === 'email' ? { email: identifier, password } : { phone: identifier, password })
+      if (result.mfaRequired) { setChallenge(result.challenge); return }
+      toast.success('Welcome back')
+      navigate('/')
     } catch (err) {
-      setError(err)
-    } finally {
-      setLoading(false)
-    }
+      toast.error(err?.response?.data?.message || err?.message || 'Could not sign in')
+    } finally { setBusy(false) }
   }
 
-  const handleGoogleCredential = useCallback(async (credential) => {
-    setError(null)
-    setLoading(true)
+  async function handleGoogleCredential(idToken) {
+    setBusy(true)
     try {
-      const result = await loginWithGoogle(credential)
-      setChallenge(result)
-      setCode('')
-    } catch (err) {
-      setError(err)
-    } finally {
-      setLoading(false)
-    }
-  }, [loginWithGoogle, navigate])
-
-  async function handleVerify(e) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    try {
-      await completeMfa(challenge.challengeToken, code)
-      navigate('/', { replace: true })
-    } catch (err) {
-      setError(err)
-    } finally {
-      setLoading(false)
-    }
+      const { data } = await api.post('/auth/firebase', { idToken })
+      if (data.mfaRequired) setChallenge(data)
+      else { completeSignIn(data); navigate('/') }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Google sign-in could not be completed')
+    } finally { setBusy(false) }
   }
 
-  return (
-    <div className="auth-page">
-      <AuthShowcase />
-      <main className="auth-main">
-        <section className="auth-card login-card">
-          <div className="auth-card-topline"><span className="auth-mini-mark">✚</span><span className="auth-card-note">YOUR GOOD WORK, IN ONE PLACE</span><ThemeToggle compact /></div>
-          <div className="mb-6 mt-6">
-            <p className="eyebrow">Welcome back</p>
-            <h1 className="mt-2 text-3xl font-extrabold text-[#30212a]">Let’s pick up the good.</h1>
-            <p className="mt-2 text-sm text-[#8d7d7d]">Sign in to your Hemora space.</p>
-          </div>
+  async function handleVerify(code) {
+    setBusy(true)
+    try { await verifyMfa(challenge.challengeToken, code); toast.success('You’re signed in'); navigate('/') }
+    catch (error) { toast.error(error?.response?.data?.message || 'That code did not match. Try again.') }
+    finally { setBusy(false) }
+  }
 
-          <ErrorBanner error={error} onDismiss={() => setError(null)} />
-
-          {challenge ? (
-            <div className="mfa-panel">
-              <p className="eyebrow">Two-step verification</p>
-              <h2 className="mt-2 text-2xl font-extrabold text-[#30212a]">
-                {challenge.setupRequired ? 'Set up your authenticator' : 'Enter your security code'}
-              </h2>
-              {challenge.setupRequired ? (
-                <div className="mfa-instructions">
-                  <p>Open Google Authenticator, Microsoft Authenticator, or another authenticator app. Add an account using this setup key:</p>
-                  <code className="mfa-secret">{challenge.setupSecret}</code>
-                  <p className="mfa-small">Choose time-based code (TOTP). Your app will make a new six-digit code every 30 seconds. Save this key somewhere private.</p>
-                </div>
-              ) : (
-                <p className="mt-2 text-sm text-[#8d7d7d]">Enter the current six-digit code from your authenticator app.</p>
-              )}
-              <form onSubmit={handleVerify} className="mt-5 space-y-4">
-                <div>
-                  <label className="label" htmlFor="mfa-code">Authenticator code</label>
-                  <input id="mfa-code" className="input mfa-code-input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" />
-                </div>
-                <button type="submit" disabled={loading || code.length !== 6} className="btn-primary auth-submit w-full justify-center py-3">{loading ? 'Verifying…' : challenge.setupRequired ? 'Enable two-step sign-in' : 'Verify and sign in'}</button>
-              </form>
-              <button type="button" className="mfa-back" onClick={() => { setChallenge(null); setCode(''); setError(null); navigate('/login', { replace: true, state: {} }) }}>Back to sign in</button>
-            </div>
-          ) : <>
-
-          <div className="login-methods" role="tablist" aria-label="Choose sign-in method">
-            <button type="button" role="tab" aria-selected={method === 'email'} onClick={() => { setMethod('email'); setIdentifier('') }} className={method === 'email' ? 'active' : ''}>Email</button>
-            <button type="button" role="tab" aria-selected={method === 'phone'} onClick={() => { setMethod('phone'); setIdentifier('') }} className={method === 'phone' ? 'active' : ''}>Mobile number</button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <div>
-              <label className="label" htmlFor="login-identifier">{method === 'email' ? 'Email address' : 'Mobile number'}</label>
-              <input id="login-identifier" type={method === 'email' ? 'email' : 'tel'} required autoComplete={method === 'email' ? 'email' : 'tel'} className="input" placeholder={method === 'email' ? 'you@example.com' : '+91 98100 00001'} value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
-            </div>
-            <div>
-              <label className="label" htmlFor="login-password">Password</label>
-              <input id="login-password" type="password" required autoComplete="current-password" className="input" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <button type="submit" disabled={loading} className="btn-primary auth-submit mt-2 w-full justify-center py-3">{loading ? 'Signing you in…' : <>Sign in <span aria-hidden="true">↗</span></>}</button>
-          </form>
-
-          <div className="login-divider"><span>or continue with</span></div>
-          <GoogleSignIn onCredential={handleGoogleCredential} onError={(err) => setError(err?.message || 'Google sign-in failed. Please try again.')} />
-          </>}
-
-          {!challenge && <p className="mt-6 text-center text-sm text-[#8d7d7d]">New to the network? <Link to="/register" className="font-bold text-[#a33243] hover:underline">Join as a donor ↗</Link></p>}
-        </section>
-        <p className="auth-footnote">A little good, flowing through your community.</p>
-      </main>
-    </div>
-  )
+  return <AuthFrame mode="login">
+    {challenge ? <MfaVerification challenge={challenge} busy={busy} onVerify={handleVerify} onBack={() => setChallenge(null)}/> : <>
+      <header className="auth-form-heading"><span className="form-eyebrow">WELCOME BACK</span><h2>Good to see you.</h2><p>Sign in and pick up where care needs you.</p></header>
+      <div className="auth-methods" role="tablist" aria-label="Sign-in method"><button type="button" role="tab" aria-selected={method === 'email'} className={method === 'email' ? 'selected' : ''} onClick={() => { setMethod('email'); setIdentifier('') }}><Mail size={15}/> Email</button><button type="button" role="tab" aria-selected={method === 'phone'} className={method === 'phone' ? 'selected' : ''} onClick={() => { setMethod('phone'); setIdentifier('') }}><Phone size={15}/> Phone</button></div>
+      <form onSubmit={handleSubmit} className="auth-form">
+        <label className="auth-input-label"><span>{method === 'email' ? 'EMAIL ADDRESS' : 'MOBILE NUMBER'}</span><div className="auth-input-wrap">{method === 'email' ? <Mail size={16}/> : <Phone size={16}/>}<input type={method === 'email' ? 'email' : 'tel'} inputMode={method === 'email' ? 'email' : 'tel'} required autoComplete={method === 'email' ? 'email' : 'tel'} placeholder={method === 'email' ? 'you@example.com' : '+91 98100 00001'} value={identifier} onChange={e => setIdentifier(e.target.value)}/></div></label>
+        <label className="auth-input-label"><span>PASSWORD</span><div className="auth-input-wrap"><ShieldCheck size={16}/><input type={showPassword ? 'text' : 'password'} required autoComplete="current-password" placeholder="Your password" value={password} onChange={e => setPassword(e.target.value)}/><button type="button" className="password-eye" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(v => !v)}>{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div></label>
+        <button type="submit" disabled={busy} className="auth-submit">{busy ? 'Connecting…' : <>Sign in <ArrowRight size={16}/></>}</button>
+      </form>
+      <div className="auth-separator"><span>OR SIGN IN WITH</span></div>
+      <GoogleSignIn onCredential={handleGoogleCredential} onError={error => toast.error(error.message || 'Google sign-in failed')}/>
+      <p className="auth-switch">New to Hemora? <Link to="/register">Create your account <ArrowRight size={14}/></Link></p>
+      <div className="auth-assurance"><ShieldCheck size={14}/><span>Two-step verification helps keep your account safe.</span></div>
+    </>}
+  </AuthFrame>
 }

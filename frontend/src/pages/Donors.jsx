@@ -1,42 +1,49 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import BloodGroupBadge, { EligibleBadge } from '../components/Badges'
-import ErrorBanner, { getErrorMessage } from '../components/ErrorBanner'
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
 
+function getErr(e) {
+  return e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Something went wrong'
+}
+
+/* ── Register Donor Modal ──────────────────────────────────── */
 function DonorModal({ onClose, onSaved }) {
   const [form, setForm] = useState({
     name:'', email:'', password:'Test@1234', phone:'',
     blood_group:'O+', age:'', gender:'M', city:'', state:'', address:'',
   })
-  const [error,   setError]   = useState(null)
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setLoading(true); setError(null)
+    setLoading(true)
     try {
       await api.post('/auth/register', { ...form, role: 'donor', age: Number(form.age) })
+      toast.success('Donor registered successfully! 🎉')
       onSaved()
     } catch (err) {
-      setError(getErrorMessage(err))
+      toast.error(getErr(err))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+    <div className="modal-overlay">
+      <div className="modal-box max-w-lg">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">Register Donor</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+          <div>
+            <p className="text-xs text-blood-400 font-semibold uppercase tracking-widest">New Entry</p>
+            <h2 className="text-xl font-bold text-white">Register Donor</h2>
+          </div>
+          <button onClick={onClose} className="text-dark-400 hover:text-white text-2xl leading-none transition-colors">×</button>
         </div>
-        <ErrorBanner error={error} onDismiss={() => setError(null)} />
-        <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Full Name *</label>
@@ -50,7 +57,7 @@ function DonorModal({ onClose, onSaved }) {
             </div>
             <div>
               <label className="label">Email *</label>
-              <input required type="email" className="input"
+              <input required type="email" className="input" placeholder="rohan@example.com"
                 value={form.email} onChange={(e) => set('email', e.target.value)} />
             </div>
             <div>
@@ -66,7 +73,7 @@ function DonorModal({ onClose, onSaved }) {
             </div>
             <div>
               <label className="label">Age * (18–65)</label>
-              <input required type="number" min="18" max="65" className="input"
+              <input required type="number" min="18" max="65" className="input" placeholder="25"
                 value={form.age} onChange={(e) => set('age', e.target.value)} />
             </div>
             <div>
@@ -77,17 +84,17 @@ function DonorModal({ onClose, onSaved }) {
             </div>
             <div>
               <label className="label">City *</label>
-              <input required className="input" value={form.city} onChange={(e) => set('city', e.target.value)} />
+              <input required className="input" placeholder="Delhi" value={form.city} onChange={(e) => set('city', e.target.value)} />
             </div>
             <div className="col-span-2">
               <label className="label">State *</label>
-              <input required className="input" value={form.state} onChange={(e) => set('state', e.target.value)} />
+              <input required className="input" placeholder="Delhi" value={form.state} onChange={(e) => set('state', e.target.value)} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button type="submit" disabled={loading} className="btn-primary flex-1 justify-center">
-              {loading ? 'Registering…' : 'Register Donor'}
+              {loading ? 'Registering…' : '🩸 Register Donor'}
             </button>
           </div>
         </form>
@@ -96,12 +103,12 @@ function DonorModal({ onClose, onSaved }) {
   )
 }
 
+/* ── Main Donors Page ──────────────────────────────────────── */
 export default function Donors() {
   const { user } = useAuth()
   const [donors,   setDonors]   = useState([])
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [error,    setError]    = useState(null)
   const [filters,  setFilters]  = useState({ blood_group: '', city: '', eligible: '' })
 
   async function fetchDonors() {
@@ -114,7 +121,7 @@ export default function Donors() {
       const { data } = await api.get(`/donors?${params}&limit=50`)
       setDonors(data.data)
     } catch (err) {
-      setError(getErrorMessage(err))
+      toast.error(getErr(err))
     } finally {
       setLoading(false)
     }
@@ -126,107 +133,162 @@ export default function Donors() {
     if (!confirm('Deactivate this donor?')) return
     try {
       await api.delete(`/donors/${id}`)
+      toast.success('Donor deactivated.')
       fetchDonors()
     } catch (err) {
-      setError(getErrorMessage(err))
+      toast.error(getErr(err))
     }
   }
 
   return (
-    <div className="donor-directory">
-      {showForm && <DonorModal onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); fetchDonors() }} />}
+    <div className="page">
+      {showForm && (
+        <DonorModal
+          onClose={() => setShowForm(false)}
+          onSaved={() => { setShowForm(false); fetchDonors() }}
+        />
+      )}
 
-      <header className="donor-page-header">
+      {/* Header */}
+      <div className="page-header">
         <div>
-          <p className="eyebrow">PEOPLE · DONOR DIRECTORY</p>
-          <h1 className="page-title mt-2">Donor network</h1>
-          <p className="donor-page-intro">{['admin','hospital'].includes(user?.role) ? 'Find eligible donors by blood group and location.' : 'Browse the donor network by blood group and location.'}</p>
+          <p className="text-xs text-blood-400 font-semibold uppercase tracking-widest mb-1">People · Donor Directory</p>
+          <h1 className="page-title">Donor Network</h1>
+          <p className="text-dark-400 text-sm mt-1">
+            {['admin','hospital'].includes(user?.role)
+              ? 'Find eligible donors by blood group and location.'
+              : 'Browse the donor network.'}
+          </p>
         </div>
         {(user?.role === 'admin' || user?.role === 'hospital') && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}><span aria-hidden="true">+</span> Register donor</button>
-        )}
-      </header>
-
-      <ErrorBanner error={error} onDismiss={() => setError(null)} />
-
-      <section className="donor-filter-panel" aria-label="Filter donors">
-        <div className="donor-filter-heading">
-          <div><h2>Find a donor</h2><p>Refine the directory using the options below.</p></div>
-          <span className="donor-filter-mark" aria-hidden="true">FILTERS</span>
-        </div>
-        <div className="donor-filter-grid">
-          <div>
-            <label className="label" htmlFor="donor-blood-group">Blood group</label>
-            <select id="donor-blood-group" className="select" value={filters.blood_group}
-              onChange={(e) => setFilters((f) => ({ ...f, blood_group: e.target.value }))}>
-              <option value="">All blood groups</option>
-              {BLOOD_GROUPS.map((g) => <option key={g}>{g}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="donor-city">City</label>
-            <input id="donor-city" className="input" placeholder="Search by city"
-              value={filters.city}
-              onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))} />
-          </div>
-          <div>
-            <label className="label" htmlFor="donor-eligibility">Eligibility</label>
-            <select id="donor-eligibility" className="select" value={filters.eligible}
-              onChange={(e) => setFilters((f) => ({ ...f, eligible: e.target.value }))}>
-              <option value="">Any status</option>
-              <option value="true">Eligible now</option>
-              <option value="false">Not yet eligible</option>
-            </select>
-          </div>
-          <button className="btn-secondary donor-clear-button" onClick={() => setFilters({ blood_group: '', city: '', eligible: '' })}>
-            Clear filters
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            + Register Donor
           </button>
-        </div>
-      </section>
-
-      <div className="donor-results-heading" aria-live="polite">
-        <div><h2>Available donors</h2><p>Directory results based on your selected filters.</p></div>
-        <span className="donor-result-count">{donors.length} <span>{donors.length === 1 ? 'donor' : 'donors'}</span></span>
+        )}
       </div>
 
-      {/* Donor grid */}
+      {/* Filters */}
+      <div className="card-glass flex flex-wrap gap-4 p-4 mb-6">
+        <div className="flex-1 min-w-36">
+          <label className="label">Blood Group</label>
+          <select className="select" value={filters.blood_group}
+            onChange={(e) => setFilters((f) => ({ ...f, blood_group: e.target.value }))}>
+            <option value="">All groups</option>
+            {BLOOD_GROUPS.map((g) => <option key={g}>{g}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 min-w-36">
+          <label className="label">City</label>
+          <input className="input" placeholder="Search by city…"
+            value={filters.city}
+            onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))} />
+        </div>
+        <div className="flex-1 min-w-36">
+          <label className="label">Eligibility</label>
+          <select className="select" value={filters.eligible}
+            onChange={(e) => setFilters((f) => ({ ...f, eligible: e.target.value }))}>
+            <option value="">Any status</option>
+            <option value="true">Eligible now ✅</option>
+            <option value="false">Not yet eligible</option>
+          </select>
+        </div>
+        <div className="flex items-end">
+          <button className="btn-ghost" onClick={() => setFilters({ blood_group: '', city: '', eligible: '' })}>
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Results count */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-dark-400 text-sm">{donors.length} donor{donors.length !== 1 ? 's' : ''} found</p>
+        <span className="text-xs text-dark-500 bg-dark-800 border border-dark-700 px-3 py-1 rounded-full">
+          🔴 Live · eRaktkosh Network
+        </span>
+      </div>
+
+      {/* Donor Grid */}
       {loading ? (
-        <div className="donor-empty-state" role="status"><span className="donor-loading-line" /><p>Loading donor directory</p><span>Retrieving the latest matching profiles.</span></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton h-44 rounded-2xl" />
+          ))}
+        </div>
       ) : donors.length === 0 ? (
-        <div className="donor-empty-state"><span className="donor-empty-mark">—</span><p>No matching donors</p><span>Try changing the blood group, city, or eligibility filters.</span></div>
+        <div className="text-center py-20 text-dark-500">
+          <p className="text-5xl mb-4">🩸</p>
+          <p className="text-lg font-semibold text-dark-300">No donors found</p>
+          <p className="text-sm mt-1">Try different filters.</p>
+        </div>
       ) : (
-        <div className="donor-card-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {donors.map((d) => (
-            <article key={d.donor_id} className="donor-card">
-              <div className="donor-card-topline" />
-              <div className="donor-card-header">
-                <div className="donor-identity">
-                  <span className="donor-avatar" aria-hidden="true">{d.name?.trim()?.charAt(0)?.toUpperCase() || 'D'}</span>
-                  <div className="min-w-0">
-                    <h3>{d.name}</h3>
-                    <p>{d.city}, {d.state}</p>
+            <div key={d.donor_id} className="card group hover:shadow-blood transition-all duration-300 hover:-translate-y-1">
+              {/* Top accent bar */}
+              <div className="h-1 w-full bg-gradient-to-r from-blood-700 to-blood-500 rounded-t-xl -mt-5 -mx-5 mb-4 w-[calc(100%+2.5rem)]" />
+
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blood-900 border border-blood-700 flex items-center justify-center text-blood-300 font-bold text-lg">
+                    {d.name?.trim()?.charAt(0)?.toUpperCase() || 'D'}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white leading-tight">{d.name}</p>
+                    <p className="text-xs text-dark-400">{d.city}, {d.state}</p>
                   </div>
                 </div>
                 <BloodGroupBadge group={d.blood_group} size="lg" />
               </div>
-              {(d.age != null || d.gender != null || d.total_donations != null) && <div className="donor-profile-meta">
-                {d.age != null && <div><span>Age</span><strong>{d.age}</strong></div>}
-                {d.gender != null && <div><span>Gender</span><strong>{d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Other'}</strong></div>}
-                {d.total_donations != null && <div><span>Donations</span><strong>{d.total_donations}</strong></div>}
-              </div>}
-              <div className="donor-card-footer">
-                {d.last_donation_date !== null && d.last_donation_date !== undefined && <div className="donor-last-donation">
-                  <span>Last donation</span>
-                  <strong>{d.last_donation_date ? new Date(d.last_donation_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No previous donation'}</strong>
-                </div>}
-                {d.eligible !== null && d.eligible !== undefined ? <EligibleBadge eligible={d.eligible} /> : <span className="donor-profile-private">Profile visible to staff</span>}
-                {user?.role === 'admin' && (
-                  <button onClick={() => handleDelete(d.donor_id)} className="donor-deactivate-button">
-                    Deactivate
-                  </button>
+
+              <div className="grid grid-cols-3 gap-2 mb-3 py-3 border-t border-b border-dark-700">
+                {d.age != null && (
+                  <div className="text-center">
+                    <p className="text-xs text-dark-500">Age</p>
+                    <p className="font-bold text-white">{d.age}</p>
+                  </div>
+                )}
+                {d.gender != null && (
+                  <div className="text-center">
+                    <p className="text-xs text-dark-500">Gender</p>
+                    <p className="font-bold text-white">{d.gender === 'M' ? '♂ M' : d.gender === 'F' ? '♀ F' : '⚧ O'}</p>
+                  </div>
+                )}
+                {d.total_donations != null && (
+                  <div className="text-center">
+                    <p className="text-xs text-dark-500">Donations</p>
+                    <p className="font-bold text-blood-300">{d.total_donations}</p>
+                  </div>
                 )}
               </div>
-            </article>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  {d.last_donation_date !== null && d.last_donation_date !== undefined && (
+                    <p className="text-xs text-dark-500">
+                      Last: <span className="text-dark-300">
+                        {d.last_donation_date
+                          ? new Date(d.last_donation_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Never'}
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {d.eligible !== null && d.eligible !== undefined
+                    ? <EligibleBadge eligible={d.eligible} />
+                    : <span className="text-xs text-dark-500">Staff only</span>
+                  }
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => handleDelete(d.donor_id)}
+                      className="btn-danger text-xs !py-0.5 !px-2"
+                    >
+                      Deactivate
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}

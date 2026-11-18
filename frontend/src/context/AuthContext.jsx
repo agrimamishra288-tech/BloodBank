@@ -9,25 +9,25 @@ export function AuthProvider({ children }) {
   })
   const [token, setToken] = useState(() => localStorage.getItem('token') || null)
 
-  const login = useCallback(async (identifier, password, method = 'email') => {
-    const credentials = method === 'phone' ? { phone: identifier, password } : { email: identifier, password }
-    const { data } = await api.post('/auth/login', credentials)
-    return data
-  }, [])
-
-  const loginWithGoogle = useCallback(async (credential) => {
-    const { data } = await api.post('/auth/firebase', { idToken: credential })
-    return data
-  }, [])
-
-  const completeMfa = useCallback(async (challengeToken, code) => {
-    const { data } = await api.post('/auth/mfa/verify', { challengeToken, code })
+  const completeSignIn = useCallback((data) => {
+    if (!data?.token || !data?.user) throw new Error('The server did not complete sign-in. Please try again.')
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     setToken(data.token)
     setUser(data.user)
     return data.user
   }, [])
+
+  const login = useCallback(async (credentials) => {
+    const { data } = await api.post('/auth/login', credentials)
+    if (data.mfaRequired) return { mfaRequired: true, challenge: data }
+    return { user: completeSignIn(data) }
+  }, [completeSignIn])
+
+  const verifyMfa = useCallback(async (challengeToken, code) => {
+    const { data } = await api.post('/auth/mfa/verify', { challengeToken, code })
+    return completeSignIn(data)
+  }, [completeSignIn])
 
   const register = useCallback(async (payload) => {
     const { data } = await api.post('/auth/register', payload)
@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, loginWithGoogle, completeMfa, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, register, verifyMfa, completeSignIn, logout }}>
       {children}
     </AuthContext.Provider>
   )

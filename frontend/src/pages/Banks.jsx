@@ -1,147 +1,225 @@
 import { useEffect, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import api from '../api/client'
-import ErrorBanner, { getErrorMessage } from '../components/ErrorBanner'
 
-const ERKOSH_URL = 'https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt'
-
-function BankMark() {
-  return <span className="bank-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3.5 20.5h17M5.5 20.5v-10L12 4.5l6.5 6v10M9 20.5v-5h6v5M8.5 11.5h.01M15.5 11.5h.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+function getErr(e) {
+  return e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Something went wrong'
 }
 
-function BankStatus({ active }) {
-  return <span className={`bank-status ${active ? 'is-active' : 'is-inactive'}`}><i />{active ? 'Active' : 'Inactive'}</span>
+function StatCard({ icon, label, value, sub }) {
+  return (
+    <div className="card-glass text-center py-5 px-4">
+      <p className="text-3xl mb-1">{icon}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-xs text-blood-400 font-semibold uppercase tracking-widest mt-1">{label}</p>
+      {sub && <p className="text-xs text-dark-500 mt-0.5">{sub}</p>}
+    </div>
+  )
 }
 
-function ContactLink({ href, label, value }) {
-  if (!value) return null
-  return <a href={href}><span className="bank-contact-label">{label}</span><strong>{value}</strong></a>
+function BankCard({ bank }) {
+  const [stock, setStock] = useState(null)
+  const [expanded, setExpanded] = useState(false)
+
+  async function loadStock() {
+    if (stock !== null) { setExpanded((v) => !v); return }
+    try {
+      const { data } = await api.get(`/banks/${bank.bank_id}/stock`)
+      setStock(data.data)
+      setExpanded(true)
+    } catch (err) {
+      toast.error(getErr(err))
+    }
+  }
+
+  const BLOOD_COLORS = {
+    'O+':'text-red-400','O-':'text-red-300',
+    'A+':'text-orange-400','A-':'text-orange-300',
+    'B+':'text-blue-400','B-':'text-blue-300',
+    'AB+':'text-purple-400','AB-':'text-purple-300',
+  }
+
+  return (
+    <div className="card hover:shadow-blood transition-all duration-300 hover:-translate-y-1 group">
+      {/* Top bar */}
+      <div className="h-1 w-[calc(100%+2.5rem)] -mx-5 -mt-5 mb-4 bg-gradient-to-r from-blood-700 via-blood-500 to-gold-500 rounded-t-xl" />
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0 mr-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs bg-blood-900/50 text-blood-300 border border-blood-700/40 px-2 py-0.5 rounded-full font-semibold">
+              eRaktkosh ✓
+            </span>
+            {bank.is_active
+              ? <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />Active</span>
+              : <span className="text-xs text-dark-500">Inactive</span>
+            }
+          </div>
+          <h3 className="font-bold text-white leading-tight text-sm">{bank.name}</h3>
+        </div>
+        <div className="text-center flex-shrink-0">
+          <p className="text-2xl font-black text-blood-300">{Number(bank.total_units_available || 0)}</p>
+          <p className="text-xs text-dark-500">units</p>
+        </div>
+      </div>
+
+      {/* Address */}
+      <p className="text-xs text-dark-400 mb-1 leading-relaxed">{bank.address}</p>
+      <div className="flex items-center gap-1 text-xs text-dark-500 mb-3">
+        <span>📍</span>
+        <span>{bank.city}, {bank.state}</span>
+        {bank.pincode && <span>· {bank.pincode}</span>}
+      </div>
+
+      {/* Contact */}
+      <div className="flex flex-wrap gap-3 mb-3">
+        {bank.contact_phone && (
+          <a href={`tel:${bank.contact_phone}`} className="text-xs text-blood-400 hover:text-blood-300 transition-colors flex items-center gap-1">
+            📞 {bank.contact_phone}
+          </a>
+        )}
+        {bank.contact_email && (
+          <a href={`mailto:${bank.contact_email}`} className="text-xs text-dark-400 hover:text-dark-200 transition-colors flex items-center gap-1">
+            ✉️ {bank.contact_email}
+          </a>
+        )}
+      </div>
+
+      {/* Coordinates */}
+      {bank.latitude && bank.longitude && (
+        <a
+          href={`https://www.openstreetmap.org/?mlat=${bank.latitude}&mlon=${bank.longitude}#map=16/${bank.latitude}/${bank.longitude}`}
+          target="_blank" rel="noreferrer"
+          className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 mb-3"
+        >
+          🗺️ {parseFloat(bank.latitude).toFixed(4)}°N, {parseFloat(bank.longitude).toFixed(4)}°E · View Map ↗
+        </a>
+      )}
+
+      {/* View stock toggle */}
+      <button
+        onClick={loadStock}
+        className="w-full text-xs text-dark-400 hover:text-blood-300 border border-dark-700 hover:border-blood-700 rounded-lg py-2 transition-all"
+      >
+        {expanded ? '▲ Hide Stock' : '▼ View Blood Stock'}
+      </button>
+
+      {/* Stock breakdown */}
+      {expanded && stock && (
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          {stock.map((s) => (
+            <div key={s.blood_group} className="text-center bg-dark-800 rounded-lg py-2">
+              <p className={`text-sm font-bold font-mono ${BLOOD_COLORS[s.blood_group] || 'text-white'}`}>{s.blood_group}</p>
+              <p className="text-xs text-dark-400">{s.available_units}</p>
+            </div>
+          ))}
+          {stock.length === 0 && (
+            <p className="col-span-4 text-center text-xs text-dark-500 py-2">No stock data available.</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Banks() {
-  const [banks, setBanks] = useState([])
-  const [localLoading, setLocalLoading] = useState(true)
-  const [directory, setDirectory] = useState([])
-  const [directoryLoading, setDirectoryLoading] = useState(true)
-  const [directoryTotal, setDirectoryTotal] = useState(0)
-  const [directorySource, setDirectorySource] = useState(null)
-  const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
-  const [view, setView] = useState('directory')
-  const [page, setPage] = useState(1)
-  const [directoryQuery, setDirectoryQuery] = useState('')
-  const pageSize = 24
+  const [banks,   setBanks]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search,  setSearch]  = useState('')
 
   useEffect(() => {
-    let active = true
-    api.get('/banks').then((response) => { if (active) setBanks(response.data.data) })
-      .catch((err) => { if (active) setError(getErrorMessage(err)) })
-      .finally(() => { if (active) setLocalLoading(false) })
-    return () => { active = false }
+    api.get('/banks')
+      .then((r) => setBanks(r.data.data))
+      .catch((err) => toast.error(getErr(err)))
+      .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDirectoryQuery(search.trim()), 250)
-    return () => clearTimeout(timer)
-  }, [search])
-
-  useEffect(() => {
-    let active = true
-    setDirectoryLoading(true)
-    const params = new URLSearchParams({ page: String(page), limit: String(pageSize) })
-    if (directoryQuery) params.set('search', directoryQuery)
-    api.get(`/banks/directory?${params}`)
-      .then((response) => {
-        if (!active) return
-        setDirectory(response.data.data)
-        setDirectoryTotal(response.data.total)
-        setDirectorySource(response.data.source)
-      })
-      .catch((err) => { if (active) setError(getErrorMessage(err)) })
-      .finally(() => { if (active) setDirectoryLoading(false) })
-    return () => { active = false }
-  }, [page, directoryQuery])
-
-  const visibleBanks = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return banks
-    return banks.filter((bank) => [bank.name, bank.address, bank.city, bank.state, bank.pincode]
-      .some((value) => String(value || '').toLowerCase().includes(query)))
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return banks
+    return banks.filter((b) =>
+      [b.name, b.city, b.state, b.address, b.pincode]
+        .some((v) => String(v || '').toLowerCase().includes(q))
+    )
   }, [banks, search])
 
-  useEffect(() => { setPage(1) }, [directoryQuery])
-
-  const totalUnits = banks.reduce((total, bank) => total + Number(bank.total_units_available || 0), 0)
-  const activeBanks = banks.filter((bank) => bank.is_active).length
-  const cities = new Set(banks.map((bank) => bank.city).filter(Boolean)).size
-  const pageCount = Math.max(1, Math.ceil(directoryTotal / pageSize))
+  const totalUnits   = banks.reduce((s, b) => s + Number(b.total_units_available || 0), 0)
+  const activeBanks  = banks.filter((b) => b.is_active).length
+  const cities       = new Set(banks.map((b) => b.city).filter(Boolean)).size
 
   return (
-    <div className="banks-page">
-      <header className="banks-page-header">
+    <div className="page">
+      {/* Header */}
+      <div className="page-header">
         <div>
-          <p className="eyebrow">NETWORK · COLLECTION CENTRES</p>
-          <h1 className="page-title mt-2">Blood banks</h1>
-          <p className="banks-intro">Search a public national directory or review stock managed in this project.</p>
+          <p className="text-xs text-blood-400 font-semibold uppercase tracking-widest mb-1">Network · Collection Centres</p>
+          <h1 className="page-title">Blood Banks</h1>
+          <p className="text-dark-400 text-sm mt-1">
+            Real Indian hospital blood banks sourced from the eRaktkosh / NHM public registry.
+          </p>
         </div>
-        <a className="banks-header-mark" href={ERKOSH_URL} target="_blank" rel="noreferrer"><BankMark /><span>Check live stock on e-RaktKosh <b aria-hidden="true">↗</b></span></a>
-      </header>
+        <a
+          href="https://eraktkosh.mohfw.gov.in"
+          target="_blank" rel="noreferrer"
+          className="btn-secondary text-xs"
+        >
+          🌐 eRaktkosh Portal ↗
+        </a>
+      </div>
 
-      <ErrorBanner error={error} onDismiss={() => setError(null)} />
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <StatCard icon="🏥" label="Total Banks"    value={banks.length}    sub="eRaktkosh-verified" />
+        <StatCard icon="✅" label="Active"          value={activeBanks}     sub="Operational" />
+        <StatCard icon="🩸" label="Total Units"    value={totalUnits}      sub="In inventory" />
+        <StatCard icon="🏙️" label="Cities Covered" value={cities}          sub="Across India" />
+      </div>
 
-      <section className="banks-metrics" aria-label="Blood bank directory summary">
-        <article><span>Public directory</span><strong>{directoryTotal.toLocaleString('en-IN')}</strong><p>Centres in the sourced snapshot</p></article>
-        <article><span>Project centres</span><strong>{banks.length}</strong><p>Centres in Hemora's operational database</p></article>
-        <article><span>Project stock</span><strong>{totalUnits}</strong><p>Available units in project inventory</p></article>
-        <article><span>Project coverage</span><strong>{cities}</strong><p>{cities === 1 ? 'City represented' : 'Cities represented'}</p></article>
-      </section>
-
-      <nav className="banks-view-tabs" role="tablist" aria-label="Choose blood bank data">
-        <button type="button" role="tab" aria-selected={view === 'directory'} className={view === 'directory' ? 'active' : ''} onClick={() => setView('directory')}>India public directory <span>{directoryTotal.toLocaleString('en-IN')}</span></button>
-        <button type="button" role="tab" aria-selected={view === 'project'} className={view === 'project' ? 'active' : ''} onClick={() => setView('project')}>Hemora project stock <span>{banks.length}</span></button>
-      </nav>
-
-      {view === 'directory' ? <section className="banks-directory-panel">
-        <div className="banks-directory-heading">
-          <div><h2>National blood bank directory</h2><p>Search by centre, city, district, or state.</p></div>
-          <label className="banks-search"><span className="sr-only">Search public blood bank directory</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search banks or cities" /></label>
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500">🔍</span>
+          <input
+            className="input pl-9"
+            placeholder="Search by name, city, state…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <div className="banks-result-line" aria-live="polite">Showing <strong>{directory.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, directoryTotal)}</strong> of {directoryTotal.toLocaleString('en-IN')} centres</div>
-        {directoryLoading ? <div className="banks-loading" role="status"><span className="inventory-loading-line" /><p>Searching the national directory</p></div> : directory.length ? <div className="banks-card-grid">
-          {directory.map((bank) => <article className="bank-card public-bank-card" key={bank.external_id}>
-            <div className="bank-card-header"><BankMark /><span className="public-bank-category">{bank.category || 'Blood bank'}</span></div>
-            <h3>{bank.name}</h3>
-            <p className="bank-address">{bank.address || 'Address not listed'}</p>
-            <div className="bank-location-line"><span>{bank.city || bank.district || 'Location not listed'}</span><i /><span>{bank.state}</span>{bank.pincode && <><i /><span>{bank.pincode}</span></>}</div>
-            <div className="bank-public-facilities">{bank.service_hours && <span>{bank.service_hours}</span>}{bank.has_components && <span>Components</span>}{bank.has_apheresis && <span>Apheresis</span>}</div>
-            <div className="bank-contact-list">
-              <ContactLink href={`tel:${bank.contact_phone}`} label="Phone" value={bank.contact_phone} />
-              <ContactLink href={`tel:${bank.helpline}`} label="Helpline" value={bank.helpline} />
-            </div>
-            {bank.latitude != null && bank.longitude != null && <a className="bank-map-link" href={`https://www.openstreetmap.org/?mlat=${bank.latitude}&mlon=${bank.longitude}#map=16/${bank.latitude}/${bank.longitude}`} target="_blank" rel="noreferrer">View on map <span aria-hidden="true">↗</span></a>}
-            {bank.website && <a className="bank-website" href={bank.website.startsWith('http') ? bank.website : `https://${bank.website}`} target="_blank" rel="noreferrer">Visit website <span aria-hidden="true">↗</span></a>}
-          </article>)}
-        </div> : <div className="banks-empty"><BankMark /><strong>{directoryQuery ? 'No centres match your search' : 'Directory unavailable'}</strong><p>{directoryQuery ? 'Try another centre name, district, or state.' : 'Try again when the API connection is available.'}</p></div>}
+        <p className="text-xs text-dark-500 mt-2">
+          Showing {visible.length} of {banks.length} blood banks
+        </p>
+      </div>
 
-        {!directoryLoading && pageCount > 1 && <div className="banks-pagination"><button className="btn-secondary" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Previous</button><span>Page <strong>{page}</strong> of {pageCount}</span><button className="btn-secondary" disabled={page >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Next</button></div>}
-
-        {directorySource && <aside className="banks-source-note"><strong>Source and freshness</strong><p>{directorySource.name}. Publisher snapshot {directorySource.snapshot_version} (loaded {directorySource.imported_at ? new Date(directorySource.imported_at).toLocaleDateString() : 'date unavailable'}); the underlying official directory was last updated {directorySource.source_updated_at}. Listings may be outdated, so call the centre before visiting. This directory does not contain live blood stock.</p><a href={directorySource.url} target="_blank" rel="noreferrer">View source record ↗</a></aside>}
-      </section> : <section className="banks-directory-panel">
-        <div className="banks-directory-heading">
-          <div><h2>Hemora operational centres</h2><p>These project records are linked to the local inventory database.</p></div>
-          <label className="banks-search"><span className="sr-only">Search project blood banks</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search banks or cities" /></label>
+      {/* Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => <div key={i} className="skeleton h-56 rounded-2xl" />)}
         </div>
-        <div className="banks-result-line" aria-live="polite">Showing <strong>{visibleBanks.length}</strong> of {banks.length} project centres</div>
-        {localLoading ? <div className="banks-loading" role="status"><span className="inventory-loading-line" /><p>Loading project centres</p></div> : visibleBanks.length ? <div className="banks-card-grid">
-          {visibleBanks.map((bank) => <article className="bank-card" key={bank.bank_id}>
-            <div className="bank-card-header"><BankMark /><BankStatus active={bank.is_active} /></div>
-            <h3>{bank.name}</h3>
-            <p className="bank-address">{bank.address}</p>
-            <div className="bank-location-line"><span>{bank.city}</span><i /><span>{bank.state}</span>{bank.pincode && <><i /><span>{bank.pincode}</span></>}</div>
-            <div className="bank-contact-list"><ContactLink href={`tel:${bank.contact_phone}`} label="Phone" value={bank.contact_phone} /><ContactLink href={`mailto:${bank.contact_email}`} label="Email" value={bank.contact_email} /></div>
-            <footer className="bank-stock-footer"><div><span>Available inventory</span><p>Across all blood groups</p></div><strong>{Number(bank.total_units_available || 0)}<small> units</small></strong></footer>
-          </article>)}
-        </div> : <div className="banks-empty"><BankMark /><strong>{search ? 'No project centres match your search' : 'No project centres available'}</strong><p>{search ? 'Try a different name, city, or area.' : 'Project blood banks will appear here when added.'}</p></div>}
-      </section>}
+      ) : visible.length === 0 ? (
+        <div className="text-center py-20 text-dark-500">
+          <p className="text-5xl mb-4">🏥</p>
+          <p className="text-lg font-semibold text-dark-300">No banks match your search</p>
+          <p className="text-sm mt-1">Try a different name, city, or state.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {visible.map((bank) => <BankCard key={bank.bank_id} bank={bank} />)}
+        </div>
+      )}
+
+      {/* Source Note */}
+      <div className="mt-8 card-glass border border-dark-700 p-4 text-xs text-dark-400">
+        <p className="font-semibold text-dark-300 mb-1">📋 Data Source & Disclaimer</p>
+        <p>
+          Blood bank data was sourced from the{' '}
+          <a href="https://eraktkosh.mohfw.gov.in" target="_blank" rel="noreferrer" className="text-blood-400 hover:underline">eRaktkosh / NHM public registry</a>
+          {' '}maintained by the Ministry of Health & Family Welfare, Government of India.
+          Real names, addresses, phone numbers, and GPS coordinates are used for educational demonstration.
+          Stock counts in this system are simulated for DBMS project purposes.
+        </p>
+      </div>
     </div>
   )
 }
