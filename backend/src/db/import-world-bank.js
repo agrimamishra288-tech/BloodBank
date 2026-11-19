@@ -1,8 +1,10 @@
 const { Client } = require('pg');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const worldBank = require('../services/worldbank');
 
+const TABLE_SQL = path.join(__dirname, 'migrations/005_world_bank_indicators.sql');
 const SOURCE_NAME = 'World Bank, World Development Indicators (api.worldbank.org), CC BY 4.0';
 
 // Health-system context for blood demand and donor supply in India.
@@ -54,6 +56,8 @@ async function importResults(results) {
   await client.connect();
   let imported = 0;
   try {
+    // Idempotent; lets the sync run on databases where init-db has not been re-run.
+    await client.query(fs.readFileSync(TABLE_SQL, 'utf8'));
     for (const result of results) {
       if (!result.observations.length) continue;
       const sourceUrl = `https://data.worldbank.org/indicator/${result.indicatorCode}?locations=${result.countryIso2}`;
