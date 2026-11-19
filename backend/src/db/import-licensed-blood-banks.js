@@ -62,17 +62,17 @@ function isoDate(value) {
 }
 
 // The source packs name and address into one cell, either on separate lines or comma-separated,
-// sometimes with an "M/s." prefix and a "(Run by ... Trust)" note.
+// sometimes with an "M/s." prefix and a "(Run by ... Trust)" note; text after the note is address.
 function splitNameAndAddress(raw) {
   let text = String(raw ?? '').replace(/\uFFFD/g, ' ').replace(/\r/g, '');
   let operatedBy = null;
   text = text.replace(/\(\s*(?:run|managed|owned)\s+by\s+([^)]+)\)/i, (_, operator) => {
     operatedBy = clean(operator);
-    return '';
+    return '\n';
   });
   text = text.replace(/^\s*M\/s\.?\s*/i, '');
 
-  const lines = text.split('\n').map(clean).filter(Boolean);
+  const lines = text.split('\n').map(clean).filter((line) => /[a-z0-9]/i.test(line));
   let name;
   let rest;
   if (lines.length > 1) {
