@@ -114,11 +114,28 @@ async function loadDataGovSnapshot() {
   };
 }
 
+async function hasApiImport() {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    const { rowCount } = await client.query(
+      "SELECT 1 FROM public_blood_bank_directory WHERE source_name LIKE '%data.gov.in OGD API%' LIMIT 1",
+    );
+    return rowCount > 0;
+  } finally {
+    await client.end();
+  }
+}
+
 async function loadSnapshot(refresh) {
-  if (dataGovIn.isConfigured() && (refresh || process.argv.includes('--data-gov-in'))) {
+  const apiRequested = process.argv.includes('--data-gov-in');
+  if (apiRequested && !dataGovIn.isConfigured()) throw new Error('DATA_GOV_IN_API_KEY is not set in backend/.env');
+  if (dataGovIn.isConfigured() && (refresh || apiRequested)) {
     try {
       return await loadDataGovSnapshot();
     } catch (error) {
+      // Never replace newer API rows with the older mirror; keep what is stored and retry next refresh.
+      if (apiRequested || await hasApiImport()) throw error;
       console.error(`data.gov.in sync failed, falling back to the mirror snapshot: ${error.message}`);
     }
   }
