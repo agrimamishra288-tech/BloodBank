@@ -26,6 +26,18 @@ The current package is dated 3 November 2026, but its publisher says the underly
    ```
 With the key set, the backend also syncs from resource `fced6df9-a360-4e08-8ca0-f283fc74ce15` (Blood Bank Directory, updated till last month) at startup and every `PUBLIC_DIRECTORY_REFRESH_HOURS`. If the API fails, it falls back to the IndiaDigital mirror. The reusable client is `backend/src/services/datagovin.js`; other data.gov.in resources can use `fetchAllRecords(resourceId)`.
 
+## Sync national health indicators from the World Bank API
+
+The World Bank Indicators API is public and needs no key. It provides yearly national figures (population, hospital beds, doctors, nurses, health spending, anaemia, maternal mortality, road-traffic deaths) that give context for blood demand and donor supply.
+
+```powershell
+cd backend
+npm run init-db:schema        # creates world_bank_indicators (safe to re-run)
+npm run db:check-world-bank   # prints each indicator's latest value without changing the database
+npm run db:sync-world-bank    # imports into world_bank_indicators
+```
+Rows are keyed by indicator, country and year, and keep the source name, link and World Bank update date. The backend refreshes them at startup and every `PUBLIC_DIRECTORY_REFRESH_HOURS`. Change the countries or indicators with `WORLD_BANK_COUNTRIES` and `WORLD_BANK_INDICATORS` in `backend/.env`. If an indicator fails to download, its stored rows are kept.
+
 ## To connect live blood stock
 
 1. Open the official [e-RaktKosh stock search](https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt) and confirm which stock fields the project needs to display.
