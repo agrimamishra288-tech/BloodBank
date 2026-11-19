@@ -14,10 +14,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    // Sign-in endpoints return 401 for bad credentials or codes; let the form show that error.
+    const isAuthRequest = /^\/?auth\/(login|register|google|firebase|mfa\/)/.test(err.config?.url || '')
+    if (err.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      if (window.location.pathname !== '/login') window.location.href = '/login'
     }
     return Promise.reject(err)
   },
