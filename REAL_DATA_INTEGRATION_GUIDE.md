@@ -38,6 +38,36 @@ npm run db:sync-world-bank    # imports into world_bank_indicators
 ```
 Rows are keyed by indicator, country and year, and keep the source name, link and World Bank update date. The backend refreshes them at startup and every `PUBLIC_DIRECTORY_REFRESH_HOURS`. Change the countries or indicators with `WORLD_BANK_COUNTRIES` and `WORLD_BANK_INDICATORS` in `backend/.env`. If an indicator fails to download, its stored rows are kept.
 
+## Import state blood bank licence lists (data.gov.in JSON exports)
+
+Some data.gov.in datasets are not on the API yet but can be exported as JSON. The Tamil Nadu Health and Family Welfare Department lists [private](https://www.data.gov.in/resource/details-private-blood-banks) (198) and [state government](https://www.data.gov.in/resource/details-state-government-blood-banks) (86) blood banks with their licence number and validity. The exports are kept in `backend/src/db/data/` and imported into `licensed_blood_banks`:
+
+```powershell
+cd backend
+npm run db:check-licensed-blood-banks   # prints row counts and parsed samples without changing the database
+npm run db:import-licensed-blood-banks  # replaces each dataset's rows in licensed_blood_banks
+```
+To refresh one, download it again with **Export in Other Format → JSON** (or open the JSON tab and press Ctrl+S), replace its file in `backend/src/db/data/`, and re-run the import. Every licence in the current files expired by 2023, so treat them as historical.
+
+## Filter reference blood banks by ownership, facility type and products
+
+The `vw_blood_bank_reference` view combines `public_blood_bank_directory` and `licensed_blood_banks` into one list with these filter columns:
+
+| Column | Values | Derived from |
+|---|---|---|
+| `ownership` | Government, Private, Charitable, Not stated | Directory category; which licence list a bank is in |
+| `facility_type` | Hospital-based, Standalone | Bank name (hospital, medical college, health centre, nursing home…), via `fn_blood_bank_facility_type` |
+| `blood_products` | Whole blood and components, Whole blood only, Not stated | Directory component-separation flag; "component" in a licensed bank's name |
+| `has_apheresis` | true, false, null | Directory apheresis flag |
+| `licence_status` | Valid, Expired, Not stated | Licence validity date (licensed banks only) |
+
+```sql
+SELECT name, city, state, blood_products
+FROM vw_blood_bank_reference
+WHERE ownership = 'Private' AND facility_type = 'Hospital-based' AND state = 'Tamil Nadu';
+```
+None of these public sources report which blood groups are in stock. That needs live stock data from e-RaktKosh (below).
+
 ## To connect live blood stock
 
 1. Open the official [e-RaktKosh stock search](https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt) and confirm which stock fields the project needs to display.
