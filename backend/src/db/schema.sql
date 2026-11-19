@@ -591,6 +591,8 @@ $$;
 
 -- fn_find_matching_donors: returns compatible + eligible donors in a city,
 -- now also returns a compatibility_score (100=exact, 80=universal O-, 60=compatible)
+-- Older databases have a different result table, which CREATE OR REPLACE cannot change.
+DROP FUNCTION IF EXISTS fn_find_matching_donors(TEXT, TEXT);
 CREATE OR REPLACE FUNCTION fn_find_matching_donors(
     p_blood_group TEXT,
     p_city        TEXT
@@ -639,6 +641,8 @@ RETURNS TABLE (
 $$;
 
 -- fn_find_matching_units: available compatible units, nearest expiry first
+-- Older databases have a different result table, which CREATE OR REPLACE cannot change.
+DROP FUNCTION IF EXISTS fn_find_matching_units(TEXT);
 CREATE OR REPLACE FUNCTION fn_find_matching_units(
     p_blood_group TEXT
 )
