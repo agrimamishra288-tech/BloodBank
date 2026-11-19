@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Activity, UsersRound, Droplet, ClipboardList, HeartHandshake, Landmark, LogOut, ArrowUpRight } from 'lucide-react'
+import { Activity, UsersRound, Droplet, ClipboardList, HeartHandshake, Landmark, Database, LogOut, ArrowUpRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import ThemeToggle from './ThemeToggle'
 
@@ -10,6 +10,7 @@ const NAV = [
   { to: '/requests', label: 'Requests', icon: ClipboardList },
   { to: '/donations', label: 'Donations', icon: HeartHandshake },
   { to: '/banks', label: 'Blood banks', icon: Landmark },
+  { to: '/public-data', label: 'Public data', icon: Database },
 ]
 
 export default function Navbar() {
