@@ -11,6 +11,21 @@ npm run db:refresh-public-directory
 
 The current package is dated 3 November 2026, but its publisher says the underlying official directory was last updated on 12 July 2022. Rechecking the mirror will not make that source data newer; verify details by phone. The importer keeps the public directory separate from the project's own `blood_banks` and `inventory` tables.
 
+## Sync the directory from the official data.gov.in API
+
+1. Sign in at [data.gov.in](https://data.gov.in), open **My Account**, and generate an API key.
+2. Add it to `backend/.env` only (never `frontend/.env` or GitHub):
+   ```
+   DATA_GOV_IN_API_KEY=your_key
+   ```
+3. Check the connection without changing the database, then sync:
+   ```powershell
+   cd backend
+   npm run db:check-data-gov-in   # prints record count, field names, and two mapped rows
+   npm run db:sync-data-gov-in    # imports into public_blood_bank_directory
+   ```
+With the key set, the backend also syncs from resource `fced6df9-a360-4e08-8ca0-f283fc74ce15` (Blood Bank Directory, updated till last month) at startup and every `PUBLIC_DIRECTORY_REFRESH_HOURS`. If the API fails, it falls back to the IndiaDigital mirror. The reusable client is `backend/src/services/datagovin.js`; other data.gov.in resources can use `fetchAllRecords(resourceId)`.
+
 ## To connect live blood stock
 
 1. Open the official [e-RaktKosh stock search](https://eraktkosh.mohfw.gov.in/BLDAHIMS/bloodbank/stockAvailability.cnt) and confirm which stock fields the project needs to display.

@@ -3,13 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+const dataGovIn = require('../services/datagovin');
 
 const SNAPSHOT_FILE = path.join(__dirname, 'data/blood-banks-india-2026-11-03.json');
 const INDEX_URL = 'https://indiadigital.org/open/data/v1/index.json';
 const FALLBACK_SOURCE_URL = 'https://www.data.gov.in/resource/blood-bank-directory-updated-till-last-month';
+const DATA_GOV_IN_RESOURCE_ID = 'fced6df9-a360-4e08-8ca0-f283fc74ce15';
 
 function slugToTitle(value) {
-  return String(value || '').replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return String(value || '').toLowerCase().replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function externalId(record) {
@@ -37,7 +39,89 @@ function toValues(record, snapshot) {
   ];
 }
 
+// data.gov.in field ids vary in punctuation (e.g. `blood_bank_name`, `_pincode`), so match on
+// lowercase alphanumerics only.
+const DATA_GOV_IN_FIELDS = {
+  name: ['bloodbankname', 'nameofbloodbank', 'bloodbank', 'name'],
+  state: ['state', 'statename', 'stateut'],
+  district: ['district', 'districtname'],
+  city: ['city', 'cityname'],
+  address: ['address'],
+  pin: ['pincode', 'pin', 'pinno'],
+  phone: ['contactno', 'contactnumber', 'phone', 'phoneno', 'contact', 'mobile'],
+  helpline: ['helpline', 'helplineno'],
+  website: ['website', 'websiteurl'],
+  category: ['category', 'type'],
+  components: ['bloodcomponentavailable', 'bloodcomponentsavailable', 'componentavailable', 'components'],
+  apheresis: ['apheresis', 'apheresisavailable'],
+  hours: ['servicetime', 'servicetiming', 'servicehours', 'timing'],
+  lat: ['latitude', 'lat'],
+  lon: ['longitude', 'long', 'lon', 'lng'],
+};
+
+function cleanText(value) {
+  const text = String(value ?? '').trim();
+  return /^(|na|n\/a|n\.a\.?|nil|null|none|-+|0)$/i.test(text) ? '' : text;
+}
+
+function yesNo(value) {
+  const text = cleanText(value).toLowerCase();
+  if (/^(y|yes|true|1|available)$/.test(text)) return true;
+  if (/^(n|no|false|not available)$/.test(text)) return false;
+  return null;
+}
+
+function coordinate(value, limit) {
+  const number = Number.parseFloat(cleanText(value));
+  return Number.isFinite(number) && number !== 0 && Math.abs(number) <= limit ? number : null;
+}
+
+function mapDataGovRecord(record) {
+  const byKey = new Map(Object.entries(record).map(([key, value]) => [key.toLowerCase().replace(/[^a-z0-9]/g, ''), value]));
+  const pick = (field) => cleanText(DATA_GOV_IN_FIELDS[field].map((key) => byKey.get(key)).find((value) => cleanText(value)));
+  const lat = coordinate(pick('lat'), 90);
+  const lon = coordinate(pick('lon'), 180);
+  return {
+    name: pick('name'), state: pick('state'), district: pick('district'), city: pick('city'),
+    address: pick('address'), pin: pick('pin'), phone: pick('phone'), helpline: pick('helpline'),
+    website: pick('website'), category: pick('category'),
+    components: yesNo(pick('components')), apheresis: yesNo(pick('apheresis')), hours: pick('hours'),
+    lat: lat !== null && lon !== null ? lat : null,
+    lon: lat !== null && lon !== null ? lon : null,
+  };
+}
+
+async function loadDataGovSnapshot() {
+  const resourceId = process.env.DATA_GOV_IN_BLOOD_BANK_RESOURCE_ID?.trim() || DATA_GOV_IN_RESOURCE_ID;
+  const resource = await dataGovIn.fetchAllRecords(resourceId);
+  if (resource.records.length !== resource.total) {
+    throw new Error(`data.gov.in returned ${resource.records.length} of ${resource.total} records; database was not changed.`);
+  }
+  const rows = resource.records.map(mapDataGovRecord).filter((row) => row.name && row.state);
+  if (rows.length < resource.records.length * 0.9) {
+    throw new Error(`Only ${rows.length} of ${resource.records.length} data.gov.in records had a name and state; check the field mapping. Fields: ${resource.fields.map((f) => f.id).join(', ')}`);
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    id: 'blood-banks',
+    version: resource.updatedDate || today,
+    licence: 'GODL-India',
+    attribution: `Source: ${resource.title}, National Health Portal / MoHFW, live from the data.gov.in OGD API under the Government Open Data License - India.`,
+    sources: [{ name: `data.gov.in API: ${resourceId}`, url: FALLBACK_SOURCE_URL }],
+    caveats: resource.updatedDate ? [`The source was last updated on ${resource.updatedDate}.`] : [],
+    fields: resource.fields,
+    rows,
+  };
+}
+
 async function loadSnapshot(refresh) {
+  if (dataGovIn.isConfigured() && (refresh || process.argv.includes('--data-gov-in'))) {
+    try {
+      return await loadDataGovSnapshot();
+    } catch (error) {
+      console.error(`data.gov.in sync failed, falling back to the mirror snapshot: ${error.message}`);
+    }
+  }
   if (!refresh) return JSON.parse(fs.readFileSync(SNAPSHOT_FILE, 'utf8'));
 
   const indexResponse = await fetch(INDEX_URL, { signal: AbortSignal.timeout(20_000) });
@@ -152,6 +236,13 @@ async function importSnapshot(snapshot) {
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not configured in backend/.env');
   const snapshot = await loadSnapshot(process.argv.includes('--refresh'));
+  if (snapshot && process.argv.includes('--dry-run')) {
+    console.log(JSON.stringify({
+      source: snapshot.sources?.[0]?.name, version: snapshot.version, rows: snapshot.rows.length,
+      fields: snapshot.fields?.map((field) => field.id), sample: snapshot.rows.slice(0, 2),
+    }, null, 2));
+    return;
+  }
   if (snapshot) await importSnapshot(snapshot);
 }
 
