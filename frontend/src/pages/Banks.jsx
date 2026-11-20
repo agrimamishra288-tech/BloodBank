@@ -285,7 +285,7 @@ function DirectoryPanel() {
 }
 
 export default function Banks() {
-  const [tab, setTab] = useState('centres')
+  const [tab, setTab] = useState('directory')
   const [banks, setBanks] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -332,16 +332,6 @@ export default function Banks() {
 
       <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setTab('centres')}
-          className={`text-xs font-semibold px-4 py-2 rounded-lg border transition ${
-            tab === 'centres'
-              ? 'bg-blood-600 border-blood-600 text-white'
-              : 'border-dark-700 text-dark-300 hover:border-blood-700'
-          }`}
-        >
-          Project centres
-        </button>
-        <button
           onClick={() => setTab('directory')}
           className={`text-xs font-semibold px-4 py-2 rounded-lg border transition ${
             tab === 'directory'
@@ -350,6 +340,16 @@ export default function Banks() {
           }`}
         >
           Public directory
+        </button>
+        <button
+          onClick={() => setTab('centres')}
+          className={`text-xs font-semibold px-4 py-2 rounded-lg border transition ${
+            tab === 'centres'
+              ? 'bg-blood-600 border-blood-600 text-white'
+              : 'border-dark-700 text-dark-300 hover:border-blood-700'
+          }`}
+        >
+          Project centres
         </button>
       </div>
 

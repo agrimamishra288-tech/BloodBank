@@ -9,6 +9,22 @@ const GROUPS = ['O−','O+','A−','A+','B−','B+','AB−','AB+']
 const KEYS = ['O-','O+','A-','A+','B-','B+','AB-','AB+']
 const COLORS = ['#9f7180','#a33a50','#b87987','#ce596b','#d09a69','#d5b16f','#8a7797','#ac8bba']
 
+const INDICATOR_LABELS = {
+  'SP.POP.TOTL': 'Population',
+  'SH.MED.BEDS.ZS': 'Hospital beds / 1,000',
+  'SH.XPD.CHEX.GD.ZS': 'Health spend',
+}
+
+function indicatorValue(indicator) {
+  const value = Number(indicator.value)
+  if (!Number.isFinite(value)) return '—'
+  if (indicator.indicator_code === 'SP.POP.TOTL') {
+    return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+  }
+  if (indicator.indicator_code === 'SH.XPD.CHEX.GD.ZS') return `${value.toFixed(1)}%`
+  return value.toFixed(1)
+}
+
 function Ring({ value, max = 100 }) {
   const pct = Math.min(100, max ? Math.round(value / max * 100) : 0)
   return <div className="stock-ring" style={{ '--ring-value': `${pct * 3.6}deg` }}><div className="ring-inner"><strong>{pct}%</strong><span>of target</span></div></div>
@@ -19,12 +35,16 @@ export default function Dashboard() {
   const [stock, setStock] = useState([])
   const [expiring, setExpiring] = useState([])
   const [pending, setPending] = useState([])
+  const [network, setNetwork] = useState(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     Promise.all([api.get('/dashboard/stats'), api.get('/dashboard/stock'), api.get('/inventory/expiring'), api.get('/requests?status=pending&limit=5')])
       .then(([s, st, ex, rq]) => { setStats(s.data.data); setStock(st.data.data || []); setExpiring(ex.data.data || []); setPending(rq.data.data || []) })
       .catch(() => {})
       .finally(() => setLoading(false))
+    api.get('/dashboard/network')
+      .then((r) => setNetwork(r.data.data))
+      .catch(() => {})
   }, [])
 
   const chartData = useMemo(() => {
@@ -52,6 +72,26 @@ export default function Dashboard() {
       <article className="metric-card metric-rose"><div className="metric-card-top"><span>REGISTERED DONORS</span><span className="metric-icon-small"><Heart size={17}/></span></div><strong>{loading ? '—' : Number(stats?.total_donors || 0).toLocaleString('en-IN')}</strong><p><b>{Number(stats?.eligible_donors || 0).toLocaleString('en-IN')}</b> currently eligible</p><div className="metric-rule"><i style={{ width: `${stats?.total_donors ? Math.min(100, stats.eligible_donors / stats.total_donors * 100) : 0}%` }}/></div></article>
       <article className="metric-card metric-sand"><div className="metric-card-top"><span>BLOOD UNITS READY</span><span className="metric-icon-small"><Droplet size={17}/></span></div><strong>{loading ? '—' : totalUnits.toLocaleString('en-IN')}</strong><p>Across all active inventory</p><div className="metric-pips">{chartData.map((g, i) => <i key={g.group} style={{ backgroundColor: COLORS[i], opacity: g.units ? 1 : .22 }}/>)}</div></article>
       <article className="metric-card metric-lavender"><div className="metric-card-top"><span>OPEN REQUESTS</span><span className="metric-icon-small"><AlertCircle size={17}/></span></div><strong>{loading ? '—' : Number(stats?.pending_requests || 0).toLocaleString('en-IN')}</strong><p><b>{Number(stats?.critical_requests || 0).toLocaleString('en-IN')}</b> need urgent attention</p><Link to="/requests" className="metric-text-link">Review requests <ArrowUpRight size={14}/></Link></article>
+    </section>
+
+    <section className="panel network-panel" aria-label="Public network coverage">
+      <div className="panel-heading"><div><span className="panel-kicker">PUBLIC NETWORK</span><h3>Coverage beyond this prototype.</h3><p>Licensed facilities published through data.gov.in — reference data, not live stock</p></div><Link to="/banks" className="panel-link">Browse directory <ArrowUpRight size={15}/></Link></div>
+      <div className="network-metrics">
+        <div className="network-metric"><strong>{network ? Number(network.facilities).toLocaleString('en-IN') : '—'}</strong><span>FACILITIES</span></div>
+        <div className="network-metric"><strong>{network ? Number(network.states).toLocaleString('en-IN') : '—'}</strong><span>STATES & UTS</span></div>
+        <div className="network-metric"><strong>{network ? Number(network.cities).toLocaleString('en-IN') : '—'}</strong><span>CITIES</span></div>
+        <div className="network-metric"><strong>{network ? Number(network.licensed_facilities).toLocaleString('en-IN') : '—'}</strong><span>TN LICENCE RECORDS</span></div>
+      </div>
+      <div className="network-foot">
+        <div className="network-indicators">
+          {(network?.indicators || []).map((indicator) => (
+            <span className="network-indicator" key={indicator.indicator_code}>
+              {INDICATOR_LABELS[indicator.indicator_code] || indicator.indicator_name} <b>{indicatorValue(indicator)}</b> <span>({indicator.year})</span>
+            </span>
+          ))}
+        </div>
+        <span className="network-source">Directory last updated {network?.source_updated_at ? new Date(network.source_updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'unknown'}</span>
+      </div>
     </section>
 
     <section className="dashboard-grid-main">

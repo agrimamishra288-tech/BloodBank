@@ -25,6 +25,41 @@ router.get('/stats', authenticate, async (req, res, next) => {
   }
 });
 
+// ── GET /api/dashboard/network ────────────────────────────────
+// Coverage from the public reference tables: licensed facilities and health indicators.
+router.get('/network', authenticate, async (_req, res, next) => {
+  try {
+    const [directory, licensed, indicators] = await Promise.all([
+      pool.query(`
+        SELECT COUNT(*)::INT AS facilities,
+               COUNT(DISTINCT state)::INT AS states,
+               COUNT(DISTINCT city)::INT AS cities,
+               MAX(source_updated_at) AS source_updated_at,
+               MAX(imported_at) AS imported_at
+        FROM public_blood_bank_directory`),
+      pool.query(`SELECT COUNT(*)::INT AS licensed_facilities FROM licensed_blood_banks`),
+      pool.query(`
+        SELECT DISTINCT ON (indicator_code)
+               indicator_code, indicator_name, value, year, source_name
+        FROM world_bank_indicators
+        WHERE indicator_code = ANY($1::text[])
+        ORDER BY indicator_code, year DESC`,
+        [['SP.POP.TOTL', 'SH.MED.BEDS.ZS', 'SH.XPD.CHEX.GD.ZS']]),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        ...directory.rows[0],
+        ...licensed.rows[0],
+        indicators: indicators.rows,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── GET /api/dashboard/stock ──────────────────────────────────
 // Stock per blood group with per-bank breakdown
 router.get('/stock', authenticate, async (req, res, next) => {
