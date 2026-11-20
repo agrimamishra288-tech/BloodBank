@@ -243,10 +243,12 @@ router.post('/login', async (req, res, next) => {
 
     delete user.password_hash;
     if (demoPasswordOnly(user)) {
+      if (process.env.NODE_ENV !== 'production') console.info('[auth/login] password-only demo sign-in:', user.email);
       delete user.mfa_enabled;
       delete user.mfa_secret;
       return res.json({ success: true, token: signToken(user), user });
     }
+    if (process.env.NODE_ENV !== 'production') console.info('[auth/login] password accepted, MFA challenge issued:', user.email);
     res.json(beginMfa(user));
   } catch (err) {
     next(err);
@@ -352,6 +354,7 @@ router.post('/firebase', async (req, res, next) => {
     delete user.mfa_secret;
     delete user.mfa_enabled;
     const token = signToken(user);
+    if (process.env.NODE_ENV !== 'production') console.info('[auth/firebase] Google sign-in completed:', user.email);
     res.json({ success: true, token, user });
   } catch (err) {
     next(err);
