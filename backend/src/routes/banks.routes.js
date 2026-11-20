@@ -4,8 +4,8 @@ const { pool }         = require('../db/pool');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { createError }  = require('../middleware/error.middleware');
 
-// GET /api/banks/directory — returns all blood banks from the operational DB
-// (the public_blood_bank_directory table is not used; real data lives in blood_banks)
+// GET /api/banks/directory — public facility directory imported from data.gov.in.
+// This is reference data: names and contact details of licensed facilities, not live stock.
 router.get('/directory', async (req, res, next) => {
   try {
     const page  = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -17,37 +17,46 @@ router.get('/directory', async (req, res, next) => {
     if (req.query.search?.trim()) {
       params.push(`%${req.query.search.trim()}%`);
       conditions.push(
-        `(b.name ILIKE $${params.length} OR b.city ILIKE $${params.length} OR b.state ILIKE $${params.length} OR b.pincode ILIKE $${params.length})`
+        `(name ILIKE $${params.length} OR city ILIKE $${params.length} OR district ILIKE $${params.length} OR state ILIKE $${params.length} OR pincode ILIKE $${params.length})`
       );
     }
     if (req.query.state?.trim()) {
       params.push(`%${req.query.state.trim()}%`);
-      conditions.push(`b.state ILIKE $${params.length}`);
+      conditions.push(`state ILIKE $${params.length}`);
     }
     if (req.query.city?.trim()) {
       params.push(`%${req.query.city.trim()}%`);
-      conditions.push(`b.city ILIKE $${params.length}`);
+      conditions.push(`city ILIKE $${params.length}`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const countRes = await pool.query(
-      `SELECT COUNT(*)::INT AS total FROM blood_banks b ${where}`, params
-    );
+    const [countRes, metaRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::INT AS total FROM public_blood_bank_directory ${where}`, params),
+      pool.query(
+        `SELECT COUNT(*)::INT AS total,
+                MAX(snapshot_version)::TEXT AS snapshot_version,
+                MAX(source_updated_at) AS source_updated_at,
+                MAX(imported_at) AS imported_at,
+                MIN(source_name) AS source_name,
+                MIN(source_url) AS source_url
+         FROM public_blood_bank_directory`
+      ),
+    ]);
 
-    params.push(limit, offset);
     const { rows } = await pool.query(
-      `SELECT b.bank_id AS external_id, b.name, b.address, b.city, b.city AS district,
-              b.state, b.pincode, b.contact_phone, b.contact_email, b.latitude, b.longitude,
-              b.is_active, b.contact_phone AS helpline, NULL AS website,
-              'Government / Private Hospital' AS category,
-              true AS has_components, false AS has_apheresis, '24 Hours' AS service_hours
-       FROM blood_banks b ${where}
-       ORDER BY b.state, b.city, b.name
-       LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
+      `SELECT external_id, name, address, city, district, state, pincode,
+              contact_phone, helpline, website, category,
+              has_components, has_apheresis, service_hours,
+              latitude, longitude, source_updated_at
+       FROM public_blood_bank_directory
+       ${where}
+       ORDER BY state, city NULLS LAST, name
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limit, offset],
     );
 
+    const meta = metaRes.rows[0];
     res.json({
       success: true,
       total: countRes.rows[0].total,
@@ -55,12 +64,13 @@ router.get('/directory', async (req, res, next) => {
       limit,
       data: rows,
       source: {
-        name: 'eRaktkosh / NHM Blood Bank Registry, Ministry of Health & Family Welfare, GoI',
-        url: 'https://eraktkosh.mohfw.gov.in',
-        snapshot_version: '2024-Q4',
-        source_updated_at: '2024-10-01',
-        imported_at: new Date().toISOString(),
-        note: 'Real Indian hospital blood bank data. Stock counts are simulated for DBMS project purposes.',
+        name: meta.source_name,
+        url: meta.source_url,
+        total_rows: meta.total,
+        snapshot_version: meta.snapshot_version,
+        source_updated_at: meta.source_updated_at,
+        imported_at: meta.imported_at,
+        note: 'Public facility directory published through data.gov.in under the Government Open Data License - India. It lists licensed facilities, not live inventory.',
       },
     });
   } catch (err) {
