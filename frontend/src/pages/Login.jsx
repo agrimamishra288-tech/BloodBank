@@ -17,6 +17,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [challenge, setChallenge] = useState(null)
+  const [googleError, setGoogleError] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -33,12 +34,15 @@ export default function Login() {
 
   async function handleGoogleCredential(idToken) {
     setBusy(true)
+    setGoogleError('')
     try {
       const { data } = await api.post('/auth/firebase', { idToken })
       if (data.mfaRequired) setChallenge(data)
       else { completeSignIn(data); navigate('/') }
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Google sign-in could not be completed')
+      const message = error?.response?.data?.message || 'Google sign-in could not be completed'
+      setGoogleError(message)
+      toast.error(message)
     } finally { setBusy(false) }
   }
 
@@ -59,7 +63,8 @@ export default function Login() {
         <button type="submit" disabled={busy} className="auth-submit">{busy ? 'Connecting…' : <>Sign in <ArrowRight size={16}/></>}</button>
       </form>
       <div className="auth-separator"><span>OR SIGN IN WITH</span></div>
-      <GoogleSignIn onCredential={handleGoogleCredential} onError={error => toast.error(error.message || 'Google sign-in failed')}/>
+      <GoogleSignIn onCredential={handleGoogleCredential} onError={error => { const message = error.message || 'Google sign-in failed'; setGoogleError(message); toast.error(message) }}/>
+      {googleError && <p className="text-xs text-red-400 mt-2" role="alert">{googleError}</p>}
       <p className="auth-switch">New to Hemora? <Link to="/register">Create your account <ArrowRight size={14}/></Link></p>
       <div className="auth-assurance"><ShieldCheck size={14}/><span>Password sign-in uses an authenticator code; Google verifies through your Google account.</span></div>
     </>}
