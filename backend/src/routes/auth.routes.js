@@ -96,12 +96,16 @@ function decryptSecret(value) {
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
-// Optional demo shortcut: password-only sign-in for one configured account.
-// Disabled unless DEMO_PASSWORD_ONLY_EMAIL names a matching account.
+// Optional demo shortcut: password-only sign-in for configured accounts.
+// Accepts a comma-separated list; disabled unless DEMO_PASSWORD_ONLY_EMAIL
+// names a matching account and the server is not running in production.
 function demoPasswordOnly(user) {
   if (process.env.NODE_ENV === 'production') return false;
-  const allowed = String(process.env.DEMO_PASSWORD_ONLY_EMAIL || '').trim().toLowerCase();
-  return Boolean(allowed) && String(user.email || '').toLowerCase() === allowed;
+  const allowed = String(process.env.DEMO_PASSWORD_ONLY_EMAIL || '')
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(String(user.email || '').toLowerCase());
 }
 
 function beginMfa(user) {
