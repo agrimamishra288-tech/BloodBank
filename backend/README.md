@@ -417,3 +417,5 @@ The Firebase web config is client configuration; the API key identifies the Fire
 ### Authenticator MFA setup
 
 The additive migration `003_authenticator_mfa.sql` adds `mfa_enabled` and `mfa_secret` to `users`. Apply it with `npm run init-db:schema`; existing user rows are preserved. On the first login after migration (including a new registration), follow the setup key shown on screen in an authenticator app, then enter the current six-digit code. Future sign-ins prompt for the code. If `JWT_SECRET` is changed, enrolled authenticator secrets can no longer be decrypted and users will need an administrator-assisted reset.
+
+For local demonstrations, set `DEMO_PASSWORD_ONLY_EMAIL` in `backend/.env` to one account's email to let that account sign in with only its password. This shortcut is ignored when `NODE_ENV=production`; leave the variable empty to require MFA for every account.

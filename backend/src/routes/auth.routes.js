@@ -96,6 +96,14 @@ function decryptSecret(value) {
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
+// Optional demo shortcut: password-only sign-in for one configured account.
+// Disabled unless DEMO_PASSWORD_ONLY_EMAIL names a matching account.
+function demoPasswordOnly(user) {
+  if (process.env.NODE_ENV === 'production') return false;
+  const allowed = String(process.env.DEMO_PASSWORD_ONLY_EMAIL || '').trim().toLowerCase();
+  return Boolean(allowed) && String(user.email || '').toLowerCase() === allowed;
+}
+
 function beginMfa(user) {
   const setupRequired = !user.mfa_enabled || !user.mfa_secret;
   const setupSecret = setupRequired ? encodeBase32(crypto.randomBytes(20)) : undefined;
@@ -234,6 +242,11 @@ router.post('/login', async (req, res, next) => {
     if (!match) throw createError(401, 'Invalid email or password.');
 
     delete user.password_hash;
+    if (demoPasswordOnly(user)) {
+      delete user.mfa_enabled;
+      delete user.mfa_secret;
+      return res.json({ success: true, token: signToken(user), user });
+    }
     res.json(beginMfa(user));
   } catch (err) {
     next(err);
