@@ -312,7 +312,8 @@ router.post('/firebase', async (req, res, next) => {
   let claims;
   try {
     claims = await auth.verifyIdToken(value.idToken, true);
-  } catch {
+  } catch (err) {
+    console.warn('[auth/firebase] ID token verification failed:', err.code || err.message);
     return res.status(401).json({ success: false, message: 'Firebase could not verify this sign-in. Check the Firebase project settings and try again.' });
   }
   if (claims.firebase?.sign_in_provider !== 'google.com' || !claims.email || claims.email_verified !== true) {
@@ -328,7 +329,12 @@ router.post('/firebase', async (req, res, next) => {
       [claims.uid, claims.email.toLowerCase()],
     );
     const user = rows[0];
-    if (!user || rows.length > 1) throw createError(401, 'No unique Hemora account uses this Google email. Create your Hemora account first.');
+    if (!user || rows.length > 1) {
+      throw createError(
+        401,
+        `Google signed you in as ${claims.email}, but no Hemora account uses that email. Register first with the same email, then try Google sign-in again.`,
+      );
+    }
     if (!user.is_active) throw createError(401, 'Account is deactivated. Contact admin.');
     if (user.firebase_uid && user.firebase_uid !== claims.uid) {
       throw createError(409, 'This Hemora account is linked to a different Firebase identity. Contact admin.');

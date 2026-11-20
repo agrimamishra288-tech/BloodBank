@@ -10,14 +10,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// On 401, clear token so ProtectedRoute redirects to login
+// On 401 from a protected request, clear the session and return to login.
+// Sign-in attempts must surface their own message on the form instead of
+// reloading the page, otherwise the user never sees why sign-in failed.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || ''
+    const isAuthAttempt = url.startsWith('/auth/')
+    if (err.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login')
+      }
     }
     return Promise.reject(err)
   },
