@@ -7,5 +7,6 @@ node_modules/
 dist/
 **/dist/
 *.log
+postgres-background.*
 .DS_Store
 Thumbs.db

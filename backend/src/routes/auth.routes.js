@@ -3,7 +3,9 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const Joi     = require('joi');
 const { OAuth2Client } = require('google-auth-library');
-const { applicationDefault, getApps, initializeApp } = require('firebase-admin/app');
+const fs = require('node:fs');
+const path = require('node:path');
+const { cert, getApps, initializeApp } = require('firebase-admin/app');
 const { getAuth: getFirebaseAuth } = require('firebase-admin/auth');
 const { pool }         = require('../db/pool');
 const { authenticate } = require('../middleware/auth.middleware');
@@ -117,9 +119,24 @@ function beginMfa(user) {
 function firebaseAuth() {
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
   if (!projectId) throw createError(503, 'Firebase sign-in is not configured on this server yet.');
+  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!keyPath) {
+    throw createError(503, 'Google sign-in needs the Firebase Admin service-account JSON. Set GOOGLE_APPLICATION_CREDENTIALS in backend/.env.');
+  }
+
+  let serviceAccount;
+  try {
+    serviceAccount = JSON.parse(fs.readFileSync(path.resolve(keyPath), 'utf8'));
+  } catch {
+    throw createError(503, 'The Firebase Admin key file is missing or unreadable. Check GOOGLE_APPLICATION_CREDENTIALS in backend/.env.');
+  }
+  if (serviceAccount.type !== 'service_account' || serviceAccount.project_id !== projectId || !serviceAccount.private_key) {
+    throw createError(503, 'The Firebase Admin key must be a service-account JSON from the same Firebase project.');
+  }
+
   const appName = 'hemora-firebase-auth';
   const app = getApps().find((entry) => entry.name === appName)
-    || initializeApp({ credential: applicationDefault(), projectId }, appName);
+    || initializeApp({ credential: cert(serviceAccount), projectId }, appName);
   return getFirebaseAuth(app);
 }
 
@@ -276,7 +293,7 @@ router.post('/firebase', async (req, res, next) => {
     auth = firebaseAuth();
   } catch (err) {
     if (err.status) return res.status(err.status).json({ success: false, message: err.message });
-    return res.status(503).json({ success: false, message: 'Firebase Admin credentials are missing or invalid on this server.' });
+    return res.status(503).json({ success: false, message: 'Firebase Admin credentials are missing or invalid. Set GOOGLE_APPLICATION_CREDENTIALS to the service-account JSON for this project.' });
   }
 
   let claims;
@@ -311,7 +328,12 @@ router.post('/firebase', async (req, res, next) => {
       if (!linked.rowCount) throw createError(409, 'This Hemora account was linked during another sign-in. Please try again.');
     }
     delete user.firebase_uid;
-    res.json(beginMfa(user));
+    // Google has authenticated the selected identity. Complete this sign-in
+    // directly instead of asking for Hemora's separate authenticator code.
+    delete user.mfa_secret;
+    delete user.mfa_enabled;
+    const token = signToken(user);
+    res.json({ success: true, token, user });
   } catch (err) {
     next(err);
   }

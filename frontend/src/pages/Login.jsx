@@ -61,7 +61,7 @@ export default function Login() {
       <div className="auth-separator"><span>OR SIGN IN WITH</span></div>
       <GoogleSignIn onCredential={handleGoogleCredential} onError={error => toast.error(error.message || 'Google sign-in failed')}/>
       <p className="auth-switch">New to Hemora? <Link to="/register">Create your account <ArrowRight size={14}/></Link></p>
-      <div className="auth-assurance"><ShieldCheck size={14}/><span>Two-step verification helps keep your account safe.</span></div>
+      <div className="auth-assurance"><ShieldCheck size={14}/><span>Password sign-in uses an authenticator code; Google verifies through your Google account.</span></div>
     </>}
   </AuthFrame>
 }

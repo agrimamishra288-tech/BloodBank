@@ -400,7 +400,7 @@ Import this collection order for end-to-end testing:
 - Email and password, or mobile number and password, are the first sign-in step. A verified mobile number is not required for password login; the number must match the user's stored phone number.
 - Every successful password or Google sign-in now requires a six-digit authenticator-app code (TOTP). On first sign-in, Hemora prompts the user to enroll an authenticator app; the setup secret is encrypted in PostgreSQL using a key derived from `JWT_SECRET`.
 - This is authenticator-based MFA. It does not send email or SMS codes; those delivery channels need a configured email/SMS provider.
-- Google sign-in uses Firebase Authentication in the browser and Firebase Admin to verify the ID token on the server. It links to an existing Hemora account by verified email; it does not create donor or hospital profiles automatically. Successful sign-in continues to the authenticator-app MFA step.
+- Google sign-in uses Firebase Authentication in the browser and Firebase Admin to verify the ID token on the server. It links to an existing Hemora account by verified email; it does not create donor or hospital profiles automatically. Google sign-in completes after Google verifies the selected account. Email/phone password sign-in and account registration use Hemora's authenticator-app MFA flow.
 
 ### Configure Google sign-in
 

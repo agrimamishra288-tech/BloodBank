@@ -1,18 +1,52 @@
-import { useState } from 'react'
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { useEffect, useState } from 'react'
+import { getRedirectResult, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth'
 import { firebaseAuth, firebaseConfigured } from '../firebase'
+
+let redirectResultPromise
 
 export default function GoogleSignIn({ onCredential, onError }) {
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (!firebaseConfigured) return undefined
+
+    let active = true
+    // Cache the promise so React StrictMode does not consume the redirect
+    // result twice during its development-only effect replay.
+    redirectResultPromise ||= getRedirectResult(firebaseAuth)
+    redirectResultPromise
+      .then(async (result) => {
+        if (!active || !result) return
+        await onCredential(await result.user.getIdToken())
+      })
+      .catch((error) => {
+        if (!active) return
+        const messages = {
+          'auth/unauthorized-domain': 'Add this site host (localhost or your LAN address) to Firebase Authentication’s authorized domains.',
+          'auth/operation-not-allowed': 'Google sign-in is not enabled in the Firebase project yet.',
+        }
+        onError?.(new Error(messages[error?.code] || error?.message || 'Google sign-in failed.'))
+      })
+
+    return () => { active = false }
+  }, [])
+
   async function handleClick() {
     setLoading(true)
     try {
-      const result = await signInWithPopup(firebaseAuth, new GoogleAuthProvider())
-      const idToken = await result.user.getIdToken()
-      await onCredential(idToken)
+      const provider = new GoogleAuthProvider()
+      // Show Google's account chooser. If the browser already has the account
+      // signed in, the user can select it without re-entering their password.
+      provider.setCustomParameters({ prompt: 'select_account' })
+      // Full-page redirect works in embedded browsers that block OAuth popups.
+      await signInWithRedirect(firebaseAuth, provider)
     } catch (error) {
-      onError?.(error)
+      const messages = {
+        'auth/operation-not-allowed': 'Google sign-in is not enabled in the Firebase project yet.',
+        'auth/unauthorized-domain': 'Add this site host (localhost or your LAN address) to Firebase Authentication’s authorized domains.',
+        'auth/network-request-failed': 'The browser could not reach Firebase. Check your internet connection.',
+      }
+      onError?.(new Error(messages[error?.code] || error?.message || 'Google sign-in failed.'))
     } finally {
       setLoading(false)
     }
