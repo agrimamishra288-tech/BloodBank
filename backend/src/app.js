@@ -12,6 +12,7 @@ const inventoryRoutes = require('./routes/inventory.routes');
 const donationRoutes  = require('./routes/donations.routes');
 const requestRoutes   = require('./routes/requests.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const referenceRoutes = require('./routes/reference.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 
@@ -35,6 +36,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/requests',  requestRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reference', referenceRoutes);
 
 // 404
 app.use((_req, res) =>
