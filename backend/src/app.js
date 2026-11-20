@@ -3,6 +3,7 @@ const express = require('express');
 const cors    = require('cors');
 const { testConnection, expireStaleInventory } = require('./db/pool');
 const { refreshPublicDirectory } = require('./db/import-public-directory');
+const { refreshWorldBankIndicators } = require('./db/import-world-bank');
 
 const authRoutes      = require('./routes/auth.routes');
 const donorRoutes     = require('./routes/donors.routes');
@@ -56,9 +57,14 @@ async function start() {
       console.log(`🚀 Server → http://localhost:${PORT}`);
       console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     });
-    const refreshDirectory = () => refreshPublicDirectory().catch((error) => {
-      console.error('Public directory refresh skipped:', error.message);
-    });
+    const refreshDirectory = () => Promise.all([
+      refreshPublicDirectory().catch((error) => {
+        console.error('Public directory refresh skipped:', error.message);
+      }),
+      refreshWorldBankIndicators().catch((error) => {
+        console.error('World Bank indicators refresh skipped:', error.message);
+      }),
+    ]);
     refreshDirectory();
     const refreshHours = Math.max(1, Number(process.env.PUBLIC_DIRECTORY_REFRESH_HOURS) || 24);
     const directoryRefresh = setInterval(refreshDirectory, refreshHours * 60 * 60 * 1000);

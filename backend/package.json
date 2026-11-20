@@ -11,7 +11,13 @@
     "init-db:seed": "node src/db/init.js --seed-only",
     "db:status": "node src/db/status.js",
     "db:import-public-directory": "node src/db/import-public-directory.js",
-    "db:refresh-public-directory": "node src/db/import-public-directory.js --refresh"
+    "db:refresh-public-directory": "node src/db/import-public-directory.js --refresh",
+    "db:sync-data-gov-in": "node src/db/import-public-directory.js --data-gov-in",
+    "db:check-data-gov-in": "node src/db/import-public-directory.js --data-gov-in --dry-run",
+    "db:sync-world-bank": "node src/db/import-world-bank.js",
+    "db:check-world-bank": "node src/db/import-world-bank.js --dry-run",
+    "db:import-licensed-blood-banks": "node src/db/import-licensed-blood-banks.js",
+    "db:check-licensed-blood-banks": "node src/db/import-licensed-blood-banks.js --dry-run"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
