@@ -11,6 +11,7 @@ import Inventory from './pages/Inventory'
 import Requests from './pages/Requests'
 import Donations from './pages/Donations'
 import Banks from './pages/Banks'
+import PublicData from './pages/PublicData'
 
 function Layout({ children }) {
   return (
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/requests"  element={<Layout><Requests /></Layout>} />
           <Route path="/donations" element={<Layout><Donations /></Layout>} />
           <Route path="/banks"     element={<Layout><Banks /></Layout>} />
+          <Route path="/public-data" element={<Layout><PublicData /></Layout>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
