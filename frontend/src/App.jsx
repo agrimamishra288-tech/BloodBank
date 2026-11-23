@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuth } from './context/AuthContext'
@@ -13,9 +14,15 @@ import Donations from './pages/Donations'
 import Banks from './pages/Banks'
 import PublicData from './pages/PublicData'
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo({ top: 0, left: 0 }) }, [pathname])
+  return null
+}
+
 function Layout({ children }) {
   return (
-    <div className="flex min-h-screen bg-dark-900">
+    <div className="app-shell flex min-h-screen bg-dark-900">
       <Navbar />
       <main className="flex-1 md:ml-64 p-6 overflow-auto">
         {children}
@@ -36,23 +43,26 @@ export default function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#0F1629',
-            color: '#fff',
-            border: '1px solid #1E2744',
-            borderRadius: '0.75rem',
-            fontSize: '0.875rem',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+            background: 'var(--panel)',
+            color: 'var(--ink)',
+            border: '1px solid var(--line)',
+            borderRadius: '14px',
+            fontSize: '13px',
+            fontFamily: 'var(--font-ui)',
+            boxShadow: 'var(--shadow-card)',
           },
           success: {
-            iconTheme: { primary: '#2ECC71', secondary: '#fff' },
-            style: { borderLeft: '3px solid #2ECC71' },
+            iconTheme: { primary: 'var(--sage)', secondary: 'var(--panel)' },
+            style: { borderLeft: '3px solid var(--sage)' },
           },
           error: {
-            iconTheme: { primary: '#E63946', secondary: '#fff' },
-            style: { borderLeft: '3px solid #E63946' },
+            iconTheme: { primary: 'var(--rose)', secondary: 'var(--panel)' },
+            style: { borderLeft: '3px solid var(--rose)' },
           },
         }}
       />
+
+      <ScrollToTop />
 
       <Routes location={location} key={location.pathname}>
         <Route path="/login"    element={user ? <Navigate to="/" replace /> : <Login />} />

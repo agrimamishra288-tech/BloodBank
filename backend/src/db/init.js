@@ -32,8 +32,17 @@ async function applyMigrations(client) {
   `);
 
   const migrationFiles = fs.existsSync(MIGRATIONS_DIR)
-    ? fs.readdirSync(MIGRATIONS_DIR).filter((name) => /^\d+_[a-z0-9_-]+\.sql$/i.test(name)).sort()
+    ? fs.readdirSync(MIGRATIONS_DIR).filter((name) => /^\d+[a-z]?_[a-z0-9_-]+\.sql$/i.test(name)).sort()
     : [];
+
+  const seenVersions = new Map();
+  for (const fileName of migrationFiles) {
+    const version = fileName.split('_')[0];
+    if (seenVersions.has(version)) {
+      throw new Error(`Duplicate migration version ${version}: ${seenVersions.get(version)} and ${fileName}`);
+    }
+    seenVersions.set(version, fileName);
+  }
 
   for (const fileName of migrationFiles) {
     const version = fileName.split('_')[0];

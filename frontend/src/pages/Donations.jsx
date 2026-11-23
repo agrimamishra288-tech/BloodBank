@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Droplet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -48,7 +49,7 @@ export default function Donations() {
         volume_ml: Number(form.volume_ml),
         notes:     form.notes || null,
       })
-      toast.success('Donation recorded! Donor stats updated & inventory unit added via trigger. 🩸')
+      toast.success('Donation recorded. Donor stats and inventory updated via trigger.')
       setForm({ donor_id: '', bank_id: '', volume_ml: '450', notes: '' })
       setShowForm(false)
       fetchData()
@@ -124,7 +125,7 @@ export default function Donations() {
             <div className="col-span-2 flex justify-end gap-3">
               <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
               <button type="submit" disabled={submitting} className="btn-primary">
-                {submitting ? 'Recording…' : '🩸 Record Donation'}
+                {submitting ? 'Recording…' : 'Record donation'}
               </button>
             </div>
           </form>
@@ -158,7 +159,9 @@ export default function Donations() {
         </div>
       ) : donations.length === 0 ? (
         <div className="text-center py-20 text-dark-500">
-          <p className="text-5xl mb-4">🩺</p>
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-dark-800 border border-dark-700 flex items-center justify-center text-blood-400">
+            <Droplet size={20} />
+          </div>
           <p className="text-lg font-semibold text-dark-300">No donations recorded yet.</p>
           {(user?.role === 'admin' || user?.role === 'hospital') && (
             <button className="btn-primary mt-4" onClick={() => setShowForm(true)}>Record First Donation</button>

@@ -37,12 +37,12 @@ router.get('/', authenticate, async (req, res, next) => {
          r.units_fulfilled, r.city, r.urgency, r.status, r.request_date,
          r.updated_at,
          CASE WHEN ${canViewPatientDetails} THEN r.notes ELSE NULL END AS notes,
-         CASE WHEN ${canViewPatientDetails} THEN p.name ELSE 'Patient request' END AS patient_name,
+         p.name AS patient_name,
          p.hospital_name,
          p.hospital_city,
          CASE WHEN ${canViewPatientDetails} THEN p.contact_phone ELSE NULL END AS patient_contact,
          CASE WHEN ${canViewPatientDetails} THEN p.gender ELSE NULL END AS patient_gender,
-         CASE WHEN ${canViewPatientDetails} THEN p.age ELSE NULL END AS patient_age,
+         p.age AS patient_age,
          CASE WHEN ${canViewPatientDetails} THEN u.name ELSE 'Hospital team' END AS requested_by_name
        FROM blood_requests r
        JOIN patients p ON p.patient_id = r.patient_id

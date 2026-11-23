@@ -43,26 +43,32 @@ router.get('/', authenticate, async (req, res, next) => {
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    const filterParams = params.length;
+    params.push(req.user.id);
+    const viewerParam = `$${params.length}`;
     params.push(Number(limit));
     params.push(offset);
 
     const canViewDonorIdentity = ['admin', 'hospital'].includes(req.user.role);
+    const canViewThisDonor = `${canViewDonorIdentity} OR d.user_id = ${viewerParam}`;
     const { rows } = await pool.query(
       `SELECT
-         d.donor_id, d.blood_group,
-         CASE WHEN ${canViewDonorIdentity} THEN d.age ELSE NULL END AS age,
-         CASE WHEN ${canViewDonorIdentity} THEN d.gender ELSE NULL END AS gender,
+         d.donor_id, d.user_id, d.blood_group,
+         d.age, d.gender,
          d.city, d.state,
-         CASE WHEN ${canViewDonorIdentity} THEN d.last_donation_date ELSE NULL END AS last_donation_date,
-         CASE WHEN ${canViewDonorIdentity} THEN d.total_donations ELSE NULL END AS total_donations,
-         d.is_available,
-         CASE WHEN ${canViewDonorIdentity} THEN u.name ELSE 'Donor #' || d.donor_id::TEXT END AS name,
+         d.last_donation_date, d.total_donations,
+         d.is_available, d.created_at,
+         (${canViewThisDonor}) AS identity_visible,
+         CASE WHEN ${canViewThisDonor} THEN u.name
+              ELSE split_part(u.name, ' ', 1) ||
+                   CASE WHEN split_part(u.name, ' ', 2) <> ''
+                        THEN ' ' || left(split_part(u.name, ' ', 2), 1) || '.'
+                        ELSE '' END
+         END AS name,
          CASE WHEN ${canViewDonorIdentity} THEN u.email ELSE NULL END AS email,
          CASE WHEN ${canViewDonorIdentity} THEN u.phone ELSE NULL END AS phone,
          u.is_active,
-         CASE WHEN ${canViewDonorIdentity} THEN
-           (d.last_donation_date IS NULL OR d.last_donation_date <= CURRENT_DATE - INTERVAL '90 days')
-         ELSE NULL END AS eligible
+         (d.last_donation_date IS NULL OR d.last_donation_date <= CURRENT_DATE - INTERVAL '90 days') AS eligible
        FROM donors d
        JOIN users u ON u.user_id = d.user_id
        ${where}
@@ -74,7 +80,7 @@ router.get('/', authenticate, async (req, res, next) => {
     // Total count for pagination
     const countRes = await pool.query(
       `SELECT COUNT(*) FROM donors d JOIN users u ON u.user_id = d.user_id ${where}`,
-      params.slice(0, params.length - 2),
+      params.slice(0, filterParams),
     );
 
     res.json({
@@ -93,17 +99,22 @@ router.get('/', authenticate, async (req, res, next) => {
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const canViewDonorIdentity = ['admin', 'hospital'].includes(req.user.role);
+    const canViewThisDonor = `(${canViewDonorIdentity} OR d.user_id = $2)`;
     const { rows } = await pool.query(
       `SELECT d.donor_id, d.user_id, d.blood_group,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN d.age ELSE NULL END AS age,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN d.gender ELSE NULL END AS gender,
+              d.age, d.gender,
               d.city, d.state,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN d.last_donation_date ELSE NULL END AS last_donation_date,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN d.total_donations ELSE NULL END AS total_donations,
+              d.last_donation_date, d.total_donations,
               d.is_available,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN u.name ELSE 'Donor #' || d.donor_id::TEXT END AS name,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN u.email ELSE NULL END AS email,
-              CASE WHEN ${canViewDonorIdentity} OR d.user_id = $2 THEN u.phone ELSE NULL END AS phone,
+              (${canViewThisDonor}) AS identity_visible,
+              CASE WHEN ${canViewThisDonor} THEN u.name
+                   ELSE split_part(u.name, ' ', 1) ||
+                        CASE WHEN split_part(u.name, ' ', 2) <> ''
+                             THEN ' ' || left(split_part(u.name, ' ', 2), 1) || '.'
+                             ELSE '' END
+              END AS name,
+              CASE WHEN ${canViewThisDonor} THEN u.email ELSE NULL END AS email,
+              CASE WHEN ${canViewThisDonor} THEN u.phone ELSE NULL END AS phone,
               u.is_active
        FROM donors d JOIN users u ON u.user_id = d.user_id
        WHERE d.donor_id = $1`,

@@ -10,3 +10,6 @@ dist/
 postgres-background.*
 .DS_Store
 Thumbs.db
+
+# Vercel
+.vercel/

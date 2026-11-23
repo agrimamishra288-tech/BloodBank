@@ -33,8 +33,9 @@ export default {
         surface: '#0F1629',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans: ['Instrument Sans Variable', 'Instrument Sans', 'system-ui', 'sans-serif'],
+        display: ['Newsreader Variable', 'Newsreader', 'Georgia', 'serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       },
       backgroundImage: {
         'hero-gradient': 'linear-gradient(135deg, #080B14 0%, #0D1117 50%, #130A14 100%)',

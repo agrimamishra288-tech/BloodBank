@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Search, UsersRound, PackageOpen, ClipboardList } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -30,7 +31,7 @@ function NewRequestModal({ onClose, onSaved }) {
         patient_age:  form.patient_age ? Number(form.patient_age) : null,
         units_needed: Number(form.units_needed),
       })
-      toast.success('Blood request submitted! 🩸')
+      toast.success('Blood request submitted.')
       onSaved()
     } catch (err) {
       toast.error(getErr(err))
@@ -113,8 +114,8 @@ function NewRequestModal({ onClose, onSaved }) {
               <label className="label">Urgency *</label>
               <select className="select" value={form.urgency} onChange={(e) => set('urgency', e.target.value)}>
                 <option value="normal">Normal</option>
-                <option value="urgent">Urgent ⚠️</option>
-                <option value="critical">Critical 🚨</option>
+                <option value="urgent">Urgent</option>
+                <option value="critical">Critical</option>
               </select>
             </div>
             <div>
@@ -130,7 +131,7 @@ function NewRequestModal({ onClose, onSaved }) {
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button type="submit" disabled={loading} className="btn-primary flex-1 justify-center">
-              {loading ? 'Submitting…' : '🩸 Submit Request'}
+              {loading ? 'Submitting…' : 'Submit request'}
             </button>
           </div>
         </form>
@@ -171,7 +172,7 @@ function MatchPanel({ requestId, onClose }) {
     setFulfilling(true)
     try {
       await api.post(`/requests/${requestId}/fulfill`, { unit_ids: selected })
-      toast.success('Request fulfilled! Inventory updated via trigger. ✅')
+      toast.success('Request fulfilled. Inventory updated via trigger.')
       onClose()
     } catch (err) {
       toast.error(getErr(err))
@@ -196,7 +197,9 @@ function MatchPanel({ requestId, onClose }) {
         <div className="p-6">
           {loading && (
             <div className="text-center py-12">
-              <div className="text-4xl mb-3 animate-pulse">🧬</div>
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-dark-800 border border-dark-700 flex items-center justify-center text-blood-400 animate-pulse">
+                <UsersRound size={20} />
+              </div>
               <p className="text-dark-400">Running compatibility algorithm…</p>
             </div>
           )}
@@ -211,7 +214,7 @@ function MatchPanel({ requestId, onClose }) {
                       ? 'bg-blood-600 text-white shadow-blood'
                       : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                   }`}>
-                  🧬 Compatible Donors ({data.matching_donors?.length ?? 0})
+                  Compatible donors ({data.matching_donors?.length ?? 0})
                 </button>
                 <button onClick={() => setTab('units')}
                   className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
@@ -219,7 +222,7 @@ function MatchPanel({ requestId, onClose }) {
                       ? 'bg-blood-600 text-white shadow-blood'
                       : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                   }`}>
-                  🏥 Available Units ({data.available_units?.length ?? 0})
+                  Available units ({data.available_units?.length ?? 0})
                 </button>
               </div>
 
@@ -227,7 +230,9 @@ function MatchPanel({ requestId, onClose }) {
               {tab === 'donors' && (
                 data.matching_donors?.length === 0 ? (
                   <div className="text-center py-10 text-dark-500">
-                    <p className="text-3xl mb-2">😔</p>
+                    <div className="w-11 h-11 mx-auto mb-3 rounded-full bg-dark-800 border border-dark-700 flex items-center justify-center text-blood-400">
+                      <UsersRound size={18} />
+                    </div>
                     <p>No eligible compatible donors found in {data.request?.city}.</p>
                   </div>
                 ) : (
@@ -279,7 +284,9 @@ function MatchPanel({ requestId, onClose }) {
                 <>
                   {data.available_units?.length === 0 ? (
                     <div className="text-center py-10 text-dark-500">
-                      <p className="text-3xl mb-2">📦</p>
+                      <div className="w-11 h-11 mx-auto mb-3 rounded-full bg-dark-800 border border-dark-700 flex items-center justify-center text-blood-400">
+                        <PackageOpen size={18} />
+                      </div>
                       <p>No compatible units available in inventory.</p>
                     </div>
                   ) : (
@@ -319,7 +326,7 @@ function MatchPanel({ requestId, onClose }) {
                     <div className="mt-5 flex justify-between items-center border-t border-dark-700 pt-4">
                       <p className="text-sm text-dark-400">{selected.length} unit(s) selected</p>
                       <button onClick={fulfill} disabled={fulfilling} className="btn-primary">
-                        {fulfilling ? 'Fulfilling…' : '✅ Fulfill Request'}
+                        {fulfilling ? 'Fulfilling…' : 'Fulfill request'}
                       </button>
                     </div>
                   )}
@@ -398,8 +405,8 @@ export default function Requests() {
           <select className="select" value={filters.urgency}
             onChange={(e) => setFilters((f) => ({ ...f, urgency: e.target.value }))}>
             <option value="">All</option>
-            <option value="critical">🚨 Critical</option>
-            <option value="urgent">⚠️ Urgent</option>
+            <option value="critical">Critical</option>
+            <option value="urgent">Urgent</option>
             <option value="normal">Normal</option>
           </select>
         </div>
@@ -423,7 +430,9 @@ export default function Requests() {
         </div>
       ) : requests.length === 0 ? (
         <div className="text-center py-20 text-dark-500">
-          <p className="text-5xl mb-4">📋</p>
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-dark-800 border border-dark-700 flex items-center justify-center text-blood-400">
+            <ClipboardList size={20} />
+          </div>
           <p className="text-lg font-semibold text-dark-300">No requests found</p>
           <p className="text-sm mt-1">Try different filters or create a new request.</p>
         </div>
@@ -436,7 +445,12 @@ export default function Requests() {
                 <div className="flex items-start gap-3">
                   <BloodGroupBadge group={r.blood_group} size="lg" />
                   <div>
-                    <p className="font-semibold text-white">{r.patient_name}</p>
+                    <p className="font-semibold text-white">
+                      {r.patient_name}
+                      {r.patient_age != null && (
+                        <span className="text-xs font-normal text-dark-400"> · {r.patient_age} yrs</span>
+                      )}
+                    </p>
                     <p className="text-sm text-dark-400">{r.hospital_name} · {r.hospital_city}</p>
                     <p className="text-xs text-dark-500 mt-0.5">
                       {r.units_needed} unit{r.units_needed !== 1 ? 's' : ''} needed
@@ -457,7 +471,7 @@ export default function Requests() {
                       onClick={() => setMatching(r.request_id)}
                       className="btn-primary text-sm !py-1 !px-3"
                     >
-                      🔍 Find Match
+                      <Search size={13} /> Find match
                     </button>
                   )}
                 </div>

@@ -98,9 +98,10 @@ function decryptSecret(value) {
 }
 // Optional demo shortcut: password-only sign-in for configured accounts.
 // Accepts a comma-separated list; disabled unless DEMO_PASSWORD_ONLY_EMAIL
-// names a matching account and the server is not running in production.
+// names a matching account. Production deployments must opt in explicitly
+// with DEMO_PASSWORD_ONLY_ALLOW_PRODUCTION=true (used by the hosted demo).
 function demoPasswordOnly(user) {
-  if (process.env.NODE_ENV === 'production') return false;
+  if (process.env.NODE_ENV === 'production' && process.env.DEMO_PASSWORD_ONLY_ALLOW_PRODUCTION !== 'true') return false;
   const allowed = String(process.env.DEMO_PASSWORD_ONLY_EMAIL || '')
     .split(',')
     .map((entry) => entry.trim().toLowerCase())
@@ -129,20 +130,31 @@ function beginMfa(user) {
 }
 
 function firebaseAuth() {
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+  const projectId = String(process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || '').trim();
   if (!projectId) throw createError(503, 'Firebase sign-in is not configured on this server yet.');
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (!keyPath) {
-    throw createError(503, 'Google sign-in needs the Firebase Admin service-account JSON. Set GOOGLE_APPLICATION_CREDENTIALS in backend/.env.');
-  }
 
+  // Hosted runtimes have no persistent disk, so they provide the service-account
+  // JSON itself; local development keeps reading the key file path.
+  const inlineKey = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
   let serviceAccount;
-  try {
-    serviceAccount = JSON.parse(fs.readFileSync(path.resolve(keyPath), 'utf8'));
-  } catch {
-    throw createError(503, 'The Firebase Admin key file is missing or unreadable. Check GOOGLE_APPLICATION_CREDENTIALS in backend/.env.');
+  if (inlineKey) {
+    try {
+      serviceAccount = JSON.parse(inlineKey);
+    } catch {
+      throw createError(503, 'GOOGLE_APPLICATION_CREDENTIALS_JSON is not valid JSON.');
+    }
+  } else {
+    const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (!keyPath) {
+      throw createError(503, 'Google sign-in needs the Firebase Admin service-account JSON. Set GOOGLE_APPLICATION_CREDENTIALS locally or GOOGLE_APPLICATION_CREDENTIALS_JSON on the host.');
+    }
+    try {
+      serviceAccount = JSON.parse(fs.readFileSync(path.resolve(keyPath), 'utf8'));
+    } catch {
+      throw createError(503, 'The Firebase Admin key file is missing or unreadable. Check GOOGLE_APPLICATION_CREDENTIALS in backend/.env.');
+    }
   }
-  if (serviceAccount.type !== 'service_account' || serviceAccount.project_id !== projectId || !serviceAccount.private_key) {
+  if (serviceAccount.type !== 'service_account' || String(serviceAccount.project_id || '').trim() !== projectId || !serviceAccount.private_key) {
     throw createError(503, 'The Firebase Admin key must be a service-account JSON from the same Firebase project.');
   }
 

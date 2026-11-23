@@ -170,7 +170,7 @@ function IndicatorCard({ indicator }) {
             <XAxis dataKey="year" hide />
             <YAxis hide domain={['auto', 'auto']} />
             <Tooltip formatter={(v) => formatValue(v)} labelStyle={{ color: '#111' }} />
-            <Line type="monotone" dataKey="value" stroke="#E63946" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="value" stroke="var(--rose)" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

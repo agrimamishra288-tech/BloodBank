@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 
 const GROUPS = ['O−','O+','A−','A+','B−','B+','AB−','AB+']
 const KEYS = ['O-','O+','A-','A+','B-','B+','AB-','AB+']
-const COLORS = ['#9f7180','#a33a50','#b87987','#ce596b','#d09a69','#d5b16f','#8a7797','#ac8bba']
+const COLORS = ['#7f9273','#4f817b','#c39a5f','#b04b5a','#cf8a63','#8f7aa8','#7c5c6b','#c96f67']
 
 const INDICATOR_LABELS = {
   'SP.POP.TOTL': 'Population',

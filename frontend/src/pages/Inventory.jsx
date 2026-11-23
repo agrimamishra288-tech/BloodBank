@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { ArrowUpRight, Check } from 'lucide-react'
 import api from '../api/client'
 import BloodGroupBadge, { StatusBadge } from '../components/Badges'
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
 const LOW = 3
+const GROUP_NOTE = { 'O-': 'universal donor', 'AB+': 'universal recipient' }
 
 function dateLabel(v) {
   if (!v) return '—'
@@ -33,11 +35,17 @@ export default function Inventory() {
 
   const stockMap = Object.fromEntries(summary.map(s => [s.blood_group, Number(s.total_units)]))
   const visible  = units.filter(u => (!gFilter || u.blood_group === gFilter) && (!sFilter || u.status === sFilter))
+  const totalUnits = BLOOD_GROUPS.reduce((sum, g) => sum + (stockMap[g] || 0), 0)
+  const lowGroups  = BLOOD_GROUPS.filter(g => (stockMap[g] || 0) > 0 && (stockMap[g] || 0) < LOW)
+  const outGroups  = BLOOD_GROUPS.filter(g => (stockMap[g] || 0) === 0)
+  const expiryNote = expiring.length === 0
+    ? 'Nothing expires in the next seven days.'
+    : `${expiring.length} unit${expiring.length === 1 ? '' : 's'} expire within seven days.`
 
   const TABS = [
-    { id:'summary',  label:'By Blood Group' },
+    { id:'summary',  label:'By blood group' },
     { id:'expiring', label:`Expiring (${expiring.length})` },
-    { id:'units',    label:'All Units' },
+    { id:'units',    label:'All units' },
   ]
 
   if (loading) return <div className="page"><div className="skeleton h-96 rounded-xl" /></div>
@@ -47,15 +55,15 @@ export default function Inventory() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Inventory</h1>
-          <p className="page-subtitle">Blood unit stock across 25 real hospitals</p>
+          <p className="page-subtitle">Blood unit stock across 25 network hospitals</p>
         </div>
+        <p className="inventory-note-line">{expiryNote}</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-dark-800 rounded-xl border border-dark-500 w-fit">
+      <div className="ledger-tabs" role="tablist" aria-label="Inventory views">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${tab === t.id ? 'bg-blood-gradient text-white shadow-blood' : 'text-muted hover:text-white'}`}>
+          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+            className={tab === t.id ? 'active' : ''}>
             {t.label}
           </button>
         ))}
@@ -63,25 +71,52 @@ export default function Inventory() {
 
       {/* BY BLOOD GROUP */}
       {tab === 'summary' && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {BLOOD_GROUPS.map(g => {
-            const count = stockMap[g] || 0
-            const isOut = count === 0
-            const isLow = count > 0 && count < LOW
-            return (
-              <div key={g} className={`card text-center ${isOut ? 'border-blood-700/70 shadow-blood' : isLow ? 'border-gold-600/50' : ''}`}>
-                <BloodGroupBadge group={g} size="lg" />
-                <p className={`text-4xl font-black mt-3 ${isOut ? 'text-blood-500' : isLow ? 'text-gold-400' : 'text-white'}`}>{count}</p>
-                <p className="text-xs text-muted mt-1">units</p>
-                {isOut && <span className="badge bg-blood-900/60 text-blood-300 border border-blood-700/40 mt-2">OUT OF STOCK</span>}
-                {isLow && <span className="badge bg-gold-600/20 text-gold-400 border border-gold-600/30 mt-2">LOW STOCK</span>}
-                {/* mini bar */}
-                <div className="score-bar mt-3">
-                  <div className="score-fill" style={{ width: `${Math.min(count / 10 * 100, 100)}%`, background: isOut ? '#7B0D1E' : isLow ? '#D4870A' : '#2ECC71' }} />
+        <div className="inventory-layout">
+          <section className="stock-ledger" aria-label="Stock by blood group">
+            <div className="stock-ledger-head" aria-hidden="true">
+              <span>Group</span><span>On hand</span><span>Level</span><span>Status</span><span/>
+            </div>
+            {BLOOD_GROUPS.map(g => {
+              const count = stockMap[g] || 0
+              const isOut = count === 0
+              const isLow = count > 0 && count < LOW
+              const state = isOut ? 'out' : isLow ? 'low' : 'ok'
+              return (
+                <div key={g} className={`stock-row is-${state}`}>
+                  <div className="stock-group">
+                    <BloodGroupBadge group={g} />
+                    {GROUP_NOTE[g] && <small>{GROUP_NOTE[g]}</small>}
+                  </div>
+                  <div className="stock-count"><strong>{count}</strong><small>units</small></div>
+                  <div className="stock-gauge" aria-hidden="true">
+                    {Array.from({ length: 10 }, (_, i) => <i key={i} className={i < Math.min(count, 10) ? 'on' : ''} />)}
+                  </div>
+                  <div className="stock-state">{isOut ? 'Out of stock' : isLow ? 'Running low' : 'Healthy'}</div>
+                  <button type="button" className="stock-open" title={`View ${g} units`}
+                    onClick={() => { setGFilter(g); setSFilter(''); setTab('units') }}>
+                    View <ArrowUpRight size={12} />
+                  </button>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </section>
+
+          <aside className="inventory-aside">
+            <span className="aside-kicker">At a glance</span>
+            <div className="aside-total"><strong>{totalUnits}</strong><span>units on hand</span></div>
+            <p className="aside-copy">
+              {outGroups.length > 0 && <><strong>{outGroups.join(', ')}</strong> {outGroups.length === 1 ? 'is' : 'are'} out of stock. </>}
+              {lowGroups.length > 0
+                ? <><strong>{lowGroups.join(', ')}</strong> {lowGroups.length === 1 ? 'is' : 'are'} below the comfort line.</>
+                : 'Every group sits above the comfort line.'}
+            </p>
+            <button type="button" className="inventory-link"
+              onClick={() => { setGFilter(''); setSFilter('available'); setTab('units') }}>
+              See available units <ArrowUpRight size={13} />
+            </button>
+            <div className="aside-rule" />
+            <p className="aside-foot">Comfort line · {LOW} units per group</p>
+          </aside>
         </div>
       )}
 
@@ -89,9 +124,9 @@ export default function Inventory() {
       {tab === 'expiring' && (
         expiring.length === 0 ? (
           <div className="card text-center py-16 text-muted">
-            <div className="text-4xl mb-3">✓</div>
+            <div className="empty-icon mx-auto mb-4"><Check size={18} /></div>
             <p className="font-semibold text-white">Nothing expiring this week</p>
-            <p className="text-sm mt-1">Your stock is healthy.</p>
+            <p className="text-sm mt-1">Every unit has more than seven days left.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -127,7 +162,7 @@ export default function Inventory() {
               {['available','issued','expired','discarded'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             {(gFilter || sFilter) && (
-              <button className="btn-ghost text-xs" onClick={() => { setGFilter(''); setSFilter('') }}>✕ Clear</button>
+              <button className="btn-ghost text-xs" onClick={() => { setGFilter(''); setSFilter('') }}>Clear</button>
             )}
             <span className="ml-auto text-xs text-muted self-center">{visible.length} units shown</span>
           </div>

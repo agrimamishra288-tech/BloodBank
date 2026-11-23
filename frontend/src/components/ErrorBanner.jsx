@@ -1,3 +1,5 @@
+import { AlertTriangle } from 'lucide-react'
+
 /** Extracts a friendly message from an Axios error */
 export function getErrorMessage(err) {
   const data = err?.response?.data
@@ -11,7 +13,7 @@ export default function ErrorBanner({ error, onDismiss }) {
   const msg = typeof error === 'string' ? error : getErrorMessage(error)
   return (
     <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
-      <span className="text-red-500 text-lg flex-shrink-0">⚠</span>
+      <AlertTriangle size={17} className="text-red-500 flex-shrink-0 mt-0.5" />
       <p className="text-sm text-red-700 flex-1">{msg}</p>
       {onDismiss && (
         <button onClick={onDismiss} className="text-red-400 hover:text-red-600 text-lg leading-none">×</button>
