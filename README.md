@@ -1,5 +1,7 @@
 # Hemora — Blood Bank & Donor Matching System
 
+[![CI](https://github.com/agrimamishra288-tech/BloodBank/actions/workflows/ci.yml/badge.svg)](https://github.com/agrimamishra288-tech/BloodBank/actions/workflows/ci.yml)
+
 A DBMS capstone project: a PostgreSQL-backed API and React dashboard for managing donors, blood inventory, requests, and donations, plus public reference data from data.gov.in and the World Bank.
 
 ## Live demo
@@ -54,6 +56,13 @@ npm run dev               # http://localhost:5173, proxies /api to port 5000
 - Operational records (users, donors, inventory, requests, donations) are seeded demo data, clearly marked as such in the UI.
 - Public directory and indicator data come from official sources: the Blood Bank Directory (data.gov.in, Government Open Data License - India) and World Bank Indicators.
 - The public directory lists licensed facilities, not live stock.
+
+## Checks
+
+- API health: `curl https://hemora-api.vercel.app/api/health` (expect `200` with a database timestamp)
+- Local frontend build: `cd frontend && npm run build`
+- Local API syntax: `cd backend && find src -name '*.js' -print0 | xargs -0 -n1 node --check`
+- GitHub Actions runs both checks on every push to `main` and on pull requests.
 
 ## Deployment notes
 
