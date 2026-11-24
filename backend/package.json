@@ -10,6 +10,7 @@
     "init-db:schema": "node src/db/init.js --schema-only",
     "init-db:seed": "node src/db/init.js --seed-only",
     "db:status": "node src/db/status.js",
+    "smoke": "node scripts/smoke-test.js",
     "db:import-public-directory": "node src/db/import-public-directory.js",
     "db:refresh-public-directory": "node src/db/import-public-directory.js --refresh",
     "db:sync-data-gov-in": "node src/db/import-public-directory.js --data-gov-in",
