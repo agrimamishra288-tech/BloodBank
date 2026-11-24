@@ -51,6 +51,8 @@ cp .env.example .env      # Vite Firebase settings
 npm run dev               # http://localhost:5173, proxies /api to port 5000
 ```
 
+Set `VITE_PROXY_TARGET` in `frontend/.env` if the API runs somewhere other than `http://localhost:5000`.
+
 ## Data provenance
 
 - Operational records (users, donors, inventory, requests, donations) are seeded demo data, clearly marked as such in the UI.
@@ -60,6 +62,7 @@ npm run dev               # http://localhost:5173, proxies /api to port 5000
 ## Checks
 
 - API health: `curl https://hemora-api.vercel.app/api/health` (expect `200` with a database timestamp)
+- API smoke test: `cd backend && BASE_URL=https://hemora-api.vercel.app npm run smoke` (health, login, dashboard stats)
 - Local frontend build: `cd frontend && npm run build`
 - Local API syntax: `cd backend && find src -name '*.js' -print0 | xargs -0 -n1 node --check`
 - GitHub Actions runs both checks on every push to `main` and on pull requests.
